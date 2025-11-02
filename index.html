@@ -158,7 +158,11 @@
       for (const { label, values } of rows) {
         const data = [];
         for (let i = 0; i < values.length; i++) data.push([i + 1, values[i]]);
-        if (values.length) data.push({ value: [rightX, values[values.length - 1]], tooltip: { show: false }, emphasis: { disabled: true } });
+        // Only extend to the right (dummy point) for drivers who completed the full lap count.
+        const isFull = values.length === lapCount;
+        if (isFull && values.length) {
+          data.push({ value: [rightX, values[values.length - 1]], tooltip: { show: false }, emphasis: { disabled: true } });
+        }
         hiddenLegend.selected[label] = true;
 
         const col = colorLookup ? colorLookup(label) : null;
@@ -176,7 +180,8 @@
           lineStyle: { width: 1.8, opacity: 0.95, color: col || undefined },
           emphasis: { focus: 'series', blurScope: 'global', lineStyle: { width: 3.2 } },
           blur: { lineStyle: { opacity: 0.5 } },     // dim other series on hover
-          endLabel: { show: true, formatter: '{a}', position: 'right', offset: [6,0], color: col || 'inherit' },
+          // Hide end label for DNFs (shorter series); keep for full-length finishers.
+          endLabel: { show: isFull, formatter: '{a}', position: 'right', offset: [6,0], color: col || 'inherit' },
           progressive: 2000,
           animation: false,
           clip: true
