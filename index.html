@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Gap to P1 by Lap — ECharts (Season → GP → Session)</title>
+  <title>Gap to P1 by Lap — ECharts (Season → GP → Session + Colors)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <style>
@@ -10,6 +10,7 @@
     body { margin:0; font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); }
     header { padding:10px 14px; background:var(--panel); display:flex; gap:12px; align-items:center; flex-wrap:wrap; border-bottom:1px solid var(--border); }
     .title { font-weight:600; margin-right:auto; }
+    label.small { color:var(--muted); font-size:12px; }
     select { background:#11141a; color:var(--fg); border:1px solid #2a2f3a; padding:6px 8px; border-radius:8px; min-width: 160px; }
     .small { color:var(--muted); font-size:12px; }
     .layout { display:grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 56px); }
@@ -27,11 +28,11 @@
 <body>
   <header>
     <div class="title">ECharts — Step Lines with End Labels</div>
-    <label class="small">Season</label>
+    <label class="small" for="seasonSel">Season</label>
     <select id="seasonSel" title="Season"></select>
-    <label class="small">GP</label>
+    <label class="small" for="gpSel">GP</label>
     <select id="gpSel" title="Grand Prix"></select>
-    <label class="small">Session</label>
+    <label class="small" for="sessionSel">Session</label>
     <select id="sessionSel" title="Session type"></select>
     <span id="meta" class="small"></span>
   </header>
@@ -69,9 +70,12 @@
     // State
     let currentSeriesNames = [];
     let lastYFallback = { min: -100, max: 1 };
-    let manifestItems = [];   // raw rows from driver_lines_filenames.csv
+    let manifestItems = [];   // rows from driver_lines_filenames.csv
     // byYear: Map<year, Map<round_no, {race, circuit, sessions: [{type, filename}]}>>
     const byYear = new Map();
+
+    // driverColors: Map("year|round" => Map(driver => hexColor))
+    const driverColors = new Map();
 
     // ---------------- CSV helpers ----------------
     function splitCSVLine(line) {
@@ -120,8 +124,34 @@
       return { rows, lapCount, minY, maxY };
     }
 
+    // ---------------- Colors ----------------
+    async function loadDriverColors() {
+      // expects driver_colors.csv with columns: year, round_no, driver, color
+      const text = await fetch('driver_colors.csv', { cache: 'no-store' }).then(r => {
+        if (!r.ok) throw new Error('Failed to load driver_colors.csv');
+        return r.text();
+      });
+      const rows = parseCSVToObjects(text);
+      driverColors.clear();
+      for (const r of rows) {
+        const year = (r.year || '').trim();
+        const round = parseInt(r.round_no, 10);
+        const drv = (r.driver || '').trim();
+        const col = (r.color || '').trim();
+        if (!year || !Number.isFinite(round) || !drv || !/^#?[0-9a-f]{6}$/i.test(col.replace('#',''))) continue;
+        const k = `${year}|${round}`;
+        if (!driverColors.has(k)) driverColors.set(k, new Map());
+        const hex = col.startsWith('#') ? col : ('#' + col);
+        driverColors.get(k).set(drv, hex);
+      }
+    }
+    function getColorFor(year, round, driver) {
+      const k = `${year}|${Number(round)}`;
+      return driverColors.get(k)?.get(driver) || null;
+    }
+
     // ---------------- ECharts option builders ----------------
-    function buildOption(parsed, titleText) {
+    function buildOption(parsed, titleText, colorLookup) {
       const { rows, lapCount, minY, maxY } = parsed;
       const rightX = lapCount + 1.2;
 
@@ -134,16 +164,19 @@
         if (values.length) data.push([rightX, values[values.length - 1]]);
         hiddenLegend.selected[label] = true;
 
+        const col = colorLookup ? colorLookup(label) : null;
+
         series.push({
           name: label,
           type: 'line',
           data,
           step: 'end',
           showSymbol: false,
-          lineStyle: { width: 1.8, opacity: 0.95 },
+          color: col || undefined,                    // series color
+          lineStyle: { width: 1.8, opacity: 0.95, color: col || undefined },
           emphasis: { focus: 'series', blurScope: 'global', lineStyle: { width: 3.2 } },
-          blur: { lineStyle: { opacity: 0.15 } }, // controls how dark others go on hover
-          endLabel: { show: true, formatter: '{a}', position: 'right', offset: [6,0], color: 'inherit' },
+          blur: { lineStyle: { opacity: 0.15 } },     // dim other series on hover
+          endLabel: { show: true, formatter: '{a}', position: 'right', offset: [6,0], color: col || 'inherit' },
           progressive: 2000,
           animation: false,
           clip: true
@@ -198,6 +231,7 @@
       };
     }
 
+    // Recompute y-axis to visible series
     function updateYAxisToVisible() {
       const opt = chart.getOption();
       const legendSel = (opt.legend && opt.legend[0] && opt.legend[0].selected) || {};
@@ -260,7 +294,6 @@
       const t = (typeRaw || '').toString().trim().toUpperCase();
       if (t === 'R' || t === 'RACE')   return 'Race';
       if (t === 'S' || t === 'SPRINT') return 'Sprint';
-      // Fallback: Title Case
       return t.charAt(0) + t.slice(1).toLowerCase();
     }
 
@@ -274,7 +307,6 @@
         const yMap = byYear.get(year);
         if (!yMap.has(round)) yMap.set(round, { race: o.race || '', circuit: o.circuit || '', sessions: [] });
         yMap.get(round).sessions.push({ type: o.type || '', filename: (o.filename || '').trim() });
-        // Prefer the last non-empty race/circuit strings to fill metadata
         if (o.race)    yMap.get(round).race = o.race;
         if (o.circuit) yMap.get(round).circuit = o.circuit;
       }
@@ -310,7 +342,6 @@
       sessionSel.innerHTML = '';
       const meta = byYear.get(year)?.get(Number(round));
       if (!meta) { sessionSel.disabled = true; return; }
-      // Deduplicate by type (keep first filename per type)
       const seen = new Map();
       for (const s of meta.sessions) {
         const key = (s.type || '').toString();
@@ -335,7 +366,7 @@
       const file  = opt.dataset.filename;
       const metaR = byYear.get(year)?.get(Number(round));
       const title = `${year}, Round ${round} (${prettySession(type)}) — ${metaR?.race || metaR?.circuit || ''}`;
-      await loadCsvAndPlot(file, title);
+      await loadCsvAndPlot(file, title, year, round);
     }
 
     async function loadManifest() {
@@ -343,7 +374,6 @@
       try {
         const text = await fetch('driver_lines_filenames.csv', { cache: 'no-store' }).then(r => r.text());
         const objs = parseCSVToObjects(text);
-        // Expect header: year, round_no, circuit, race, type, filename
         manifestItems = objs.filter(o => (o.filename || '').trim().length);
         buildIndex();
         populateSeasons();
@@ -355,7 +385,7 @@
             populateSessions(seasonSel.value, gpSel.value);
             if (sessionSel.options.length) {
               sessionSel.selectedIndex = 0;
-              await onSessionChange(); // auto-plot first available combo
+              await onSessionChange(); // auto-plot first
             }
           }
         } else {
@@ -384,13 +414,17 @@
     sessionSel.addEventListener('change', onSessionChange);
 
     // ---------------- Plotting ----------------
-    async function loadCsvAndPlot(path, title) {
+    async function loadCsvAndPlot(path, title, year, round) {
       const csv = await fetch(path, { cache: 'no-store' }).then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status} for ${path}`);
         return r.text();
       });
       const parsed = parseDriverLines(csv);
-      const option = buildOption(parsed, title);
+
+      // Build a per-driver color resolver for the active year/round
+      const colorLookup = (driver) => getColorFor(year, round, driver);
+
+      const option = buildOption(parsed, title, colorLookup);
       chart.setOption(option, true);
       currentSeriesNames = parsed.rows.map(r => r.label);
       buildDriverList(currentSeriesNames);
@@ -407,7 +441,16 @@
       yAxis: { type: 'value', min: -100, max: 1, axisLabel: { color: '#c8c8c8' } },
       legend: hiddenLegend
     });
-    window.addEventListener('DOMContentLoaded', loadManifest);
+
+    // Ensure colors are ready before first plot
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await loadDriverColors();   // loads driver_colors.csv once
+      } catch (e) {
+        console.warn('No driver_colors.csv or failed to parse; falling back to default colors.', e);
+      }
+      await loadManifest();        // loads driver_lines_filenames.csv and kicks off first plot
+    });
   </script>
 </body>
 </html>
