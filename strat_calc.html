@@ -300,7 +300,7 @@
       min-height: 1em;
     }
 
-    /* New layout for strategies + race params */
+    /* Strategies + race params layout */
 
     .strategies-row {
       display: flex;
@@ -327,14 +327,32 @@
       width: 100%;
     }
 
-    .race-params-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(90px, 1fr));
-      gap: 6px 8px;
+    .race-params-col {
+      flex: 1;
     }
 
-    .race-params-col .field-label {
-      font-size: 0.72rem;
+    .race-params-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .race-param-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .race-param-row .field-label {
+      margin: 0;
+      font-size: 0.75rem;
+      flex: 0 0 120px; /* adjust as needed */
+      text-align: left;
+      letter-spacing: 0.06em;
+    }
+
+    .race-param-row .field-input {
+      flex: 1;
     }
 
     @media (max-width: 720px) {
@@ -343,9 +361,6 @@
       }
       .strategy-inputs {
         max-width: 100%;
-      }
-      .race-params-grid {
-        grid-template-columns: repeat(2, minmax(110px, 1fr));
       }
     }
   </style>
@@ -380,20 +395,20 @@
 
           <div class="race-params-col">
             <h3>Race Parameters</h3>
-            <div class="race-params-grid">
-              <div>
+            <div class="race-params-list">
+              <div class="race-param-row">
                 <span class="field-label">Num laps</span>
                 <input type="number" id="numLaps" class="field-input" min="1" />
               </div>
-              <div>
+              <div class="race-param-row">
                 <span class="field-label">Pit loss (s)</span>
                 <input type="number" id="pitLoss" class="field-input" step="0.1" />
               </div>
-              <div>
+              <div class="race-param-row">
                 <span class="field-label">SC length (laps)</span>
                 <input type="number" id="scLength" class="field-input" min="1" />
               </div>
-              <div>
+              <div class="race-param-row">
                 <span class="field-label">Fuel Effect (s/lap)</span>
                 <input type="number" id="fuelEffect" class="field-input" step="0.001" />
               </div>
@@ -401,6 +416,7 @@
           </div>
         </div>
 
+        <h3>Compounds</h3>
         <table class="compound-table">
           <thead>
             <tr>
@@ -444,6 +460,9 @@
           <tbody></tbody>
         </table>
         <button type="button" id="addRangeBtn" class="btn-small">+ Add range</button>
+        <div>
+          <button id="runBtn2" type="button">Run</button>
+        </div>
       </div>
     </div>
 
