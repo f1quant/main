@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Race Selector</title>
+  <style>
+    :root {
+      --bg-color: #02040a;
+      --panel-color: #101320;
+      --accent-color: #00e0ff;
+      --accent-soft: #00e0ff33;
+      --text-color: #f5f5f5;
+      --muted-color: #9ca3af;
+      --border-color: #27272f;
+      --radius-lg: 16px;
+      --transition-fast: 0.18s ease-out;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, -system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      background: radial-gradient(circle at top, #050816 0, #000 55%, #000 100%);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      background: linear-gradient(to bottom right, #050816ee, #020308f0);
+      border-radius: 24px;
+      padding: 24px 20px 20px;
+      border: 1px solid rgba(148, 163, 253, 0.08);
+      box-shadow:
+        0 18px 60px rgba(0, 0, 0, 0.85),
+        0 0 40px rgba(0, 224, 255, 0.05);
+      backdrop-filter: blur(14px);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--muted-color);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 2.2fr);
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .label {
+      font-size: 11px;
+      color: var(--muted-color);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    select {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      background-color: #020308;
+      color: var(--text-color);
+      font-size: 13px;
+      outline: none;
+      appearance: none;
+      transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
+      box-shadow: 0 0 0 1px transparent;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--accent-color) 50%),
+        linear-gradient(135deg, var(--accent-color) 50%, transparent 50%);
+      background-position:
+        calc(100% - 16px) 11px,
+        calc(100% - 11px) 11px;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+    }
+
+    select:disabled {
+      cursor: not-allowed;
+      opacity: 0.35;
+      background-image: none;
+    }
+
+    select:hover:not(:disabled) {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 12px var(--accent-soft);
+      transform: translateY(-1px);
+    }
+
+    select:focus-visible {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 14px var(--accent-soft);
+    }
+
+    .events-list {
+      min-height: 40px;
+      max-height: 220px;
+      padding: 6px 8px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      background-color: #020308;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11px;
+    }
+
+    .event-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 4px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color var(--transition-fast),
+                  transform var(--transition-fast),
+                  box-shadow var(--transition-fast);
+    }
+
+    .event-item:hover {
+      background-color: rgba(15, 23, 42, 0.92);
+      box-shadow: 0 0 12px var(--accent-soft);
+      transform: translateY(-1px);
+    }
+
+    .event-item input[type="checkbox"] {
+      accent-color: var(--accent-color);
+      width: 13px;
+      height: 13px;
+      cursor: pointer;
+    }
+
+    .event-label-text {
+      color: var(--text-color);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .events-placeholder {
+      color: var(--muted-color);
+      font-size: 10px;
+      padding: 2px 0;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted-color);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .pill {
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 253, 0.22);
+      font-size: 10px;
+      color: var(--accent-color);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background-color: var(--accent-color);
+      box-shadow: 0 0 8px var(--accent-color);
+    }
+
+    .result-card {
+      margin-top: 14px;
+      padding: 12px 11px;
+      border-radius: 18px;
+      background: radial-gradient(circle at top left, #111827 0, #020308 70%);
+      border: 1px solid rgba(75, 85, 99, 0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 12px;
+    }
+
+    .result-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted-color);
+    }
+
+    .result-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-color);
+      text-shadow: 0 0 16px rgba(0, 224, 255, 0.55);
+    }
+
+    .hint {
+      font-size: 10px;
+      color: var(--muted-color);
+    }
+
+    .filters-section {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(0, 224, 255, 0.03);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+    }
+
+    .filters-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .filter-label {
+      font-size: 10px;
+      color: var(--muted-color);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background-color: #020308;
+      color: var(--text-color);
+      font-size: 12px;
+      outline: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 8px var(--accent-soft);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      accent-color: var(--accent-color);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      font-size: 11px;
+      color: var(--text-color);
+      cursor: pointer;
+    }
+
+    .dropdown-container {
+      position: relative;
+    }
+
+    .dropdown-trigger {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background-color: #020308;
+      color: var(--text-color);
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .dropdown-trigger:hover {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 8px var(--accent-soft);
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 4px;
+      padding: 8px;
+      background-color: #020308;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .dropdown-content.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+    }
+
+    .dropdown-item input[type="checkbox"] {
+      accent-color: var(--accent-color);
+      width: 13px;
+      height: 13px;
+      cursor: pointer;
+    }
+
+    .dropdown-item label {
+      font-size: 11px;
+      color: var(--text-color);
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .groups-table {
+      margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .groups-table th {
+      background: rgba(0, 224, 255, 0.1);
+      color: var(--accent-color);
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .groups-table td {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .groups-table tr:hover {
+      background: rgba(0, 224, 255, 0.05);
+    }
+
+    .error-cell {
+      color: #ff4444;
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 18px 14px 14px;
+      }
+      .controls {
+        grid-template-columns: 1fr;
+      }
+      .title {
+        font-size: 18px;
+      }
+      .subtitle {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">
+        <span>Race Data Explorer</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <div class="label">Circuit</div>
+        <select id="circuitSelect">
+          <option value="">—</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <div class="label">Events</div>
+        <div id="eventsList" class="events-list">
+          <div class="events-placeholder">Select a circuit to view its events.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status">
+      <div id="loadStatus">Loading all_df.csv…</div>
+      <div class="pill">
+        <div class="pill-dot"></div>
+        <span id="metaInfo">Awaiting data</span>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-label">Rows for selected event(s)</div>
+      <div id="resultValue" class="result-value">—</div>
+      <div class="hint">This count is the total rows matching all checked events.</div>
+    </div>
+
+    <div class="filters-section">
+      <div class="filters-title">Filters</div>
+      <div class="filters-grid">
+        <div class="filter-item">
+          <div class="filter-label">Laps to Discard at Start</div>
+          <input type="number" id="filterMinLap" value="1" min="0">
+        </div>
+        <div class="filter-item">
+          <div class="filter-label">Laps to Discard at End</div>
+          <input type="number" id="filterEndLaps" value="5" min="0">
+        </div>
+        <div class="filter-item">
+          <div class="filter-label">Min Distance to Car Ahead</div>
+          <input type="number" id="filterMinDist" value="10" min="0" step="0.1">
+        </div>
+        <div class="filter-item">
+          <div class="checkbox-group">
+            <input type="checkbox" id="filterIncludeLapped" checked>
+            <label for="filterIncludeLapped">Exclude Lapped</label>
+          </div>
+        </div>
+        <div class="filter-item">
+          <div class="checkbox-group">
+            <input type="checkbox" id="filterRainfall" checked>
+            <label for="filterRainfall">Exclude Rainfall</label>
+          </div>
+        </div>
+        <div class="filter-item">
+          <div class="checkbox-group">
+            <input type="checkbox" id="filterSafetyCar" checked>
+            <label for="filterSafetyCar">Exclude Safety Car</label>
+          </div>
+        </div>
+        <div class="filter-item">
+          <div class="checkbox-group">
+            <input type="checkbox" id="filterPitLaps" checked>
+            <label for="filterPitLaps">Exclude Pit Laps</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="groupsTableContainer"></div>
+  </div>
+
+  <!-- Papa Parse from CDN -->
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    const circuitSelect = document.getElementById("circuitSelect");
+    const eventsList = document.getElementById("eventsList");
+    const loadStatus = document.getElementById("loadStatus");
+    const metaInfo = document.getElementById("metaInfo");
+    const resultValue = document.getElementById("resultValue");
+    const groupsTableContainer = document.getElementById("groupsTableContainer");
+
+    let allRows = [];
+    let eventsByKey = new Map(); // key -> {year, round_no, meeting_name, circuit_name}
+    let tyreChoices = new Map(); // key (year||round_no) -> {hard, medium, soft}
+
+    init();
+
+    function init() {
+      // Load tyre_choices.csv first
+      Papa.parse("tyre_choices.csv", {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        complete: function (results) {
+          if (results.data) {
+            results.data.forEach(row => {
+              const year = String(row.year || "").trim();
+              const round = String(row.round_no || "").trim();
+              if (year && round) {
+                const key = `${year}||${round}`;
+                tyreChoices.set(key, {
+                  hard: String(row.hard || "").trim(),
+                  medium: String(row.medium || "").trim(),
+                  soft: String(row.soft || "").trim()
+                });
+              }
+            });
+          }
+          // Now load all_df.csv
+          loadMainCSV();
+        },
+        error: function (err) {
+          console.error("Error loading tyre_choices.csv:", err);
+          loadMainCSV();
+        }
+      });
+    }
+
+    function loadMainCSV() {
+      Papa.parse("all_df.csv", {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        complete: function (results) {
+          if (results.errors && results.errors.length) {
+            console.warn("Papa Parse errors:", results.errors);
+          }
+
+          allRows = (results.data || []).filter(row =>
+            row.year !== undefined &&
+            row.round_no !== undefined &&
+            row.meeting_name !== undefined &&
+            row.circuit_name !== undefined &&
+            String(row.year || "").trim() !== "2018"
+          );
+
+          if (!allRows.length) {
+            loadStatus.textContent = "CSV loaded, but no usable rows found.";
+            metaInfo.textContent = "No data";
+            return;
+          }
+
+          buildCircuitDropdown(allRows);
+          indexEvents(allRows);
+          setupFilterListeners();
+          loadStatus.textContent = "CSV loaded.";
+          metaInfo.textContent = `${allRows.length} rows total`;
+          
+          // Set default circuit to Interlagos
+          circuitSelect.value = "Interlagos";
+          onCircuitChange();
+        },
+        error: function (err) {
+          console.error("Papa Parse error:", err);
+          loadStatus.textContent = "Error loading CSV. Check console.";
+          metaInfo.textContent = "No data";
+        }
+      });
+
+      circuitSelect.addEventListener("change", onCircuitChange);
+    }
+
+    function buildCircuitDropdown(rows) {
+      const circuits = new Set();
+
+      rows.forEach(r => {
+        const name = (r.circuit_name || "").trim();
+        if (name) circuits.add(name);
+      });
+
+      const sortedCircuits = Array.from(circuits).sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" })
+      );
+
+      sortedCircuits.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        circuitSelect.appendChild(opt);
+      });
+    }
+
+    function indexEvents(rows) {
+      eventsByKey.clear();
+
+      rows.forEach(r => {
+        const year = String(r.year || "").trim();
+        const round = String(r.round_no || "").trim();
+        const meeting = String(r.meeting_name || "").trim();
+        const circuit = String(r.circuit_name || "").trim();
+        if (!year || !round || !meeting || !circuit) return;
+
+        const key = makeEventKey(year, round, meeting, circuit);
+        if (!eventsByKey.has(key)) {
+          eventsByKey.set(key, {
+            year,
+            round_no: round,
+            meeting_name: meeting,
+            circuit_name: circuit
+          });
+        }
+      });
+    }
+
+    function makeEventKey(year, round, meeting, circuit) {
+      return `${year}||${round}||${meeting}||${circuit}`;
+    }
+
+    function setupFilterListeners() {
+      document.getElementById("filterMinLap").addEventListener("input", onEventSelectionChange);
+      document.getElementById("filterEndLaps").addEventListener("input", onEventSelectionChange);
+      document.getElementById("filterMinDist").addEventListener("input", onEventSelectionChange);
+      document.getElementById("filterRainfall").addEventListener("change", onEventSelectionChange);
+      document.getElementById("filterSafetyCar").addEventListener("change", onEventSelectionChange);
+      document.getElementById("filterPitLaps").addEventListener("change", onEventSelectionChange);
+      document.getElementById('filterIncludeLapped').addEventListener('change', onEventSelectionChange);
+    }
+
+    function applyFilters(rows) {
+      const lapsToDiscard = parseInt(document.getElementById("filterMinLap").value) || 1;
+      const minLap = lapsToDiscard + 1;
+      const endLaps = parseInt(document.getElementById("filterEndLaps").value) || 5;
+      const minDist = parseFloat(document.getElementById("filterMinDist").value) || 10;
+      const excludeRainfall = document.getElementById("filterRainfall").checked;
+      const excludeSafetyCar = document.getElementById("filterSafetyCar").checked;
+      const excludePitLaps = document.getElementById("filterPitLaps").checked;
+      const excludeLapped = document.getElementById('filterIncludeLapped').checked;
+      
+      return rows.filter(r => {
+        // Min lap number
+        const lapNum = parseInt(r.lap_LapNumber);
+        if (isNaN(lapNum) || lapNum < minLap) return false;
+        
+        // Max lap number (sched_laps - endLaps)
+        const schedLaps = parseInt(r.sched_laps);
+        if (!isNaN(schedLaps)) {
+          const maxLap = schedLaps - endLaps;
+          if (lapNum > maxLap) return false;
+        }
+        
+        // Finish status: always include 'Finished'. Optionally include lapped drivers
+        const status = String(r.finish_status || "").trim();
+        if (status !== 'Finished' && (excludeLapped || !(status === 'Lapped' || status === '+1 Lap'))) {
+          console.log(`Excluding ${status} for ${r.lap_Driver} and ${r.year} ${r.round_no}`);
+          return false;
+        }
+        
+        // Rainfall
+        if (excludeRainfall) {
+          const rainfall = String(r.weather_Rainfall || "").trim().toLowerCase();
+          if (rainfall === "true" || rainfall === "1") return false;
+        }
+        
+        // Safety car
+        if (excludeSafetyCar) {
+          const trackStatus = String(r.lap_TrackStatus || "");
+          if (trackStatus.includes("4") || trackStatus.includes("5") || 
+              trackStatus.includes("6") || trackStatus.includes("7")) {
+            return false;
+          }
+        }
+        
+        // Pit laps
+        if (excludePitLaps) {
+          const pitIn = String(r.lap_PitInTime || "").trim();
+          const pitOut = String(r.lap_PitOutTime || "").trim();
+          if ((pitIn && pitIn.toLowerCase() !== "na" && pitIn !== "") ||
+              (pitOut && pitOut.toLowerCase() !== "na" && pitOut !== "")) {
+            return false;
+          }
+        }
+        
+        // Min distance
+        const dist = parseFloat(r.min_dist);
+        if (!isNaN(dist) && dist < minDist) return false;
+        
+        return true;
+      });
+    }
+
+    function onCircuitChange() {
+      const selectedCircuit = circuitSelect.value;
+      resultValue.textContent = "—";
+      eventsList.innerHTML = "";
+
+      if (!selectedCircuit) {
+        const placeholder = document.createElement("div");
+        placeholder.className = "events-placeholder";
+        placeholder.textContent = "Select a circuit to view its events.";
+        eventsList.appendChild(placeholder);
+        return;
+      }
+
+      const events = [];
+      eventsByKey.forEach((val, key) => {
+        if (val.circuit_name === selectedCircuit) {
+          const label = `${val.year} - ${val.round_no}. ${val.meeting_name}`;
+          events.push({
+            key,
+            label,
+            year: val.year,
+            round_no: val.round_no
+          });
+        }
+      });
+
+      events.sort((a, b) => {
+        const ya = parseInt(a.year, 10) || 0;
+        const yb = parseInt(b.year, 10) || 0;
+        if (ya !== yb) return ya - yb;
+        const ra = parseInt(a.round_no, 10) || 0;
+        const rb = parseInt(b.round_no, 10) || 0;
+        return ra - rb;
+      });
+
+      if (!events.length) {
+        const placeholder = document.createElement("div");
+        placeholder.className = "events-placeholder";
+        placeholder.textContent = "No events found for this circuit.";
+        eventsList.appendChild(placeholder);
+        return;
+      }
+
+      events.forEach(ev => {
+        const wrapper = document.createElement("label");
+        wrapper.className = "event-item";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = ev.key;
+        checkbox.checked = true;
+        checkbox.addEventListener("change", onEventSelectionChange);
+
+        const tyreKey = `${ev.year}||${ev.round_no}`;
+        const tyres = tyreChoices.get(tyreKey);
+        let tyreInfo = "";
+        if (tyres && tyres.hard && tyres.medium && tyres.soft) {
+          tyreInfo = ` (${tyres.hard}-${tyres.medium}-${tyres.soft})`;
+        }
+
+        const text = document.createElement("span");
+        text.className = "event-label-text";
+        text.textContent = ev.label + tyreInfo;
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(text);
+        eventsList.appendChild(wrapper);
+      });
+
+      onEventSelectionChange();
+    }
+
+    function onEventSelectionChange() {
+      const checked = Array.from(
+        eventsList.querySelectorAll("input[type='checkbox']:checked")
+      ).map(cb => cb.value);
+
+      if (!checked.length) {
+        resultValue.textContent = "—";
+        groupsTableContainer.innerHTML = "";
+        return;
+      }
+
+      const selectedEvents = checked
+        .map(key => eventsByKey.get(key))
+        .filter(Boolean);
+
+      const matchingRows = allRows.filter(r => {
+        const rYear = String(r.year || "").trim();
+        const rRound = String(r.round_no || "").trim();
+        const rMeeting = String(r.meeting_name || "").trim();
+        const rCircuit = String(r.circuit_name || "").trim();
+
+        for (const ev of selectedEvents) {
+          if (
+            rYear === ev.year &&
+            rRound === ev.round_no &&
+            rMeeting === ev.meeting_name &&
+            rCircuit === ev.circuit_name
+          ) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      resultValue.textContent = matchingRows.length.toString();
+      
+      const filteredRows = applyFilters(matchingRows);
+      displayGroupsTable(filteredRows);
+    }
+
+    function displayGroupsTable(rows) {
+      if (!rows.length) {
+        groupsTableContainer.innerHTML = "";
+        return;
+      }
+
+      // Group by year, round_no, meeting_name, lap_Driver, session_type, lap_Stint
+      const groups = new Map();
+      
+      rows.forEach(r => {
+        const year = String(r.year || "").trim();
+        const round = String(r.round_no || "").trim();
+        const meeting = String(r.meeting_name || "").trim();
+        const driver = String(r.lap_Driver || "").trim();
+        const session = String(r.session_type || "").trim();
+        const stint = String(r.lap_Stint || "").trim();
+        const key = `${year}||${round}||${meeting}||${driver}||${session}||${stint}`;
+        
+        if (!groups.has(key)) {
+          groups.set(key, {
+            event: `${year} - ${round}. ${meeting}`,
+            lap_Driver: driver,
+            session_type: session,
+            lap_Stint: stint,
+            rows: []
+          });
+        }
+        groups.get(key).rows.push(r);
+      });
+
+      // Build table
+      let html = `
+        <table class="groups-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Driver</th>
+              <th>Session Type</th>
+              <th>Stint</th>
+              <th>Row Count</th>
+              <th>Sched Laps</th>
+              <th>Compound</th>
+              <th>Finish Status</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      groups.forEach(group => {
+        const schedLaps = getUniqueValue(group.rows, 'sched_laps');
+        const compound = getUniqueValue(group.rows, 'lap_Compound');
+        const finishStatus = getUniqueValue(group.rows, 'finish_status');
+
+        html += `
+          <tr>
+            <td>${escapeHtml(group.event)}</td>
+            <td>${escapeHtml(group.lap_Driver)}</td>
+            <td>${escapeHtml(group.session_type)}</td>
+            <td>${escapeHtml(group.lap_Stint)}</td>
+            <td>${group.rows.length}</td>
+            <td${schedLaps === 'error' ? ' class="error-cell"' : ''}>${escapeHtml(schedLaps)}</td>
+            <td${compound === 'error' ? ' class="error-cell"' : ''}>${escapeHtml(compound)}</td>
+            <td${finishStatus === 'error' ? ' class="error-cell"' : ''}>${escapeHtml(finishStatus)}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+          </tbody>
+        </table>
+      `;
+
+      groupsTableContainer.innerHTML = html;
+    }
+
+    function getUniqueValue(rows, column) {
+      const values = new Set();
+      rows.forEach(r => {
+        const val = String(r[column] || "").trim();
+        values.add(val);
+      });
+      
+      if (values.size === 1) {
+        return Array.from(values)[0];
+      }
+      return 'error';
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

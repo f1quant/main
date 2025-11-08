@@ -1,0 +1,170 @@
+year,round_no,circuit,race,hard,medium,soft
+2025,1,Melbourne,Australian Grand Prix,C3,C4,C5
+2025,2,Shanghai,Chinese Grand Prix,C2,C3,C4
+2025,3,Suzuka,Japanese Grand Prix,C1,C2,C3
+2025,4,Sakhir,Bahrain Grand Prix,C1,C2,C3
+2025,5,Jeddah,Saudi Arabian Grand Prix,C3,C4,C5
+2025,6,Miami,Miami Grand Prix,C3,C4,C5
+2025,7,Imola,Emilia Romagna Grand Prix,C4,C5,C6
+2025,8,Monte Carlo,Monaco Grand Prix,C4,C5,C6
+2025,9,Catalunya,Spanish Grand Prix,C1,C2,C3
+2025,10,Montreal,Canadian Grand Prix,C4,C5,C6
+2025,11,Spielberg,Austrian Grand Prix,C3,C4,C5
+2025,12,Silverstone,British Grand Prix,C2,C3,C4
+2025,13,Spa-Francorchamps,Belgian Grand Prix,C1,C3,C4
+2025,14,Hungaroring,Hungarian Grand Prix,C3,C4,C5
+2025,15,Zandvoort,Dutch Grand Prix,C2,C3,C4
+2025,16,Monza,Italian Grand Prix,C3,C4,C5
+2025,17,Baku,Azerbaijan Grand Prix,C4,C5,C6
+2025,18,Singapore,Singapore Grand Prix,C3,C4,C5
+2025,19,Austin,United States Grand Prix,C1,C3,C4
+2025,20,Mexico City,Mexico City Grand Prix,C2,C4,C5
+2024,1,Sakhir,Bahrain Grand Prix,C1,C2,C3
+2024,2,Jeddah,Saudi Arabian Grand Prix,C2,C3,C4
+2024,3,Melbourne,Australian Grand Prix,C3,C4,C5
+2024,4,Suzuka,Japanese Grand Prix,C1,C2,C3
+2024,5,Shanghai,Chinese Grand Prix,C2,C3,C4
+2024,6,Miami,Miami Grand Prix,C2,C3,C4
+2024,7,Imola,Emilia Romagna Grand Prix,C3,C4,C5
+2024,8,Monte Carlo,Monaco Grand Prix,C3,C4,C5
+2024,9,Montreal,Canadian Grand Prix,C3,C4,C5
+2024,10,Catalunya,Spanish Grand Prix,C1,C2,C3
+2024,11,Spielberg,Austrian Grand Prix,C3,C4,C5
+2024,12,Silverstone,British Grand Prix,C1,C2,C3
+2024,13,Hungaroring,Hungarian Grand Prix,C3,C4,C5
+2024,14,Spa-Francorchamps,Belgian Grand Prix,C2,C3,C4
+2024,15,Zandvoort,Dutch Grand Prix,C1,C2,C3
+2024,16,Monza,Italian Grand Prix,C3,C4,C5
+2024,17,Baku,Azerbaijan Grand Prix,C3,C4,C5
+2024,18,Singapore,Singapore Grand Prix,C3,C4,C5
+2024,19,Austin,United States Grand Prix,C2,C3,C4
+2024,20,Mexico City,Mexico City Grand Prix,C3,C4,C5
+2024,21,Interlagos,São Paulo Grand Prix,C3,C4,C5
+2024,22,Las Vegas,Las Vegas Grand Prix,C3,C4,C5
+2024,23,Lusail,Qatar Grand Prix,C1,C2,C3
+2024,24,Yas Marina Circuit,Abu Dhabi Grand Prix,C3,C4,C5
+2023,1,Sakhir,Bahrain Grand Prix,C1,C2,C3
+2023,2,Jeddah,Saudi Arabian Grand Prix,C2,C3,C4
+2023,3,Melbourne,Australian Grand Prix,C2,C3,C4
+2023,4,Baku,Azerbaijan Grand Prix,C3,C4,C5
+2023,5,Miami,Miami Grand Prix,C2,C3,C4
+2023,6,Monte Carlo,Monaco Grand Prix,C3,C4,C5
+2023,7,Catalunya,Spanish Grand Prix,C1,C2,C3
+2023,8,Montreal,Canadian Grand Prix,C3,C4,C5
+2023,9,Spielberg,Austrian Grand Prix,C3,C4,C5
+2023,10,Silverstone,British Grand Prix,C1,C2,C3
+2023,11,Hungaroring,Hungarian Grand Prix,C3,C4,C5
+2023,12,Spa-Francorchamps,Belgian Grand Prix,C2,C3,C4
+2023,13,Zandvoort,Dutch Grand Prix,C1,C2,C3
+2023,14,Monza,Italian Grand Prix,C3,C4,C5
+2023,15,Singapore,Singapore Grand Prix,C3,C4,C5
+2023,16,Suzuka,Japanese Grand Prix,C1,C2,C3
+2023,17,Lusail,Qatar Grand Prix,C1,C2,C3
+2023,18,Austin,United States Grand Prix,C2,C3,C4
+2023,19,Mexico City,Mexico City Grand Prix,C3,C4,C5
+2023,20,Interlagos,São Paulo Grand Prix,C2,C3,C4
+2023,21,Las Vegas,Las Vegas Grand Prix,C3,C4,C5
+2023,22,Yas Marina Circuit,Abu Dhabi Grand Prix,C3,C4,C5
+2022,1,Sakhir,Bahrain Grand Prix,C1,C2,C3
+2022,2,Jeddah,Saudi Arabian Grand Prix,C2,C3,C4
+2022,3,Melbourne,Australian Grand Prix,C2,C3,C5
+2022,4,Imola,Emilia Romagna Grand Prix,C2,C3,C4
+2022,5,Miami,Miami Grand Prix,C2,C3,C4
+2022,6,Catalunya,Spanish Grand Prix,C1,C2,C3
+2022,7,Monte Carlo,Monaco Grand Prix,C3,C4,C5
+2022,8,Baku,Azerbaijan Grand Prix,C3,C4,C5
+2022,9,Montreal,Canadian Grand Prix,C3,C4,C5
+2022,10,Silverstone,British Grand Prix,C1,C2,C3
+2022,11,Spielberg,Austrian Grand Prix,C3,C4,C5
+2022,12,Paul Ricard,French Grand Prix,C2,C3,C4
+2022,13,Hungaroring,Hungarian Grand Prix,C2,C3,C4
+2022,14,Spa-Francorchamps,Belgian Grand Prix,C2,C3,C4
+2022,15,Zandvoort,Dutch Grand Prix,C1,C2,C3
+2022,16,Monza,Italian Grand Prix,C2,C3,C4
+2022,17,Singapore,Singapore Grand Prix,C3,C4,C5
+2022,18,Suzuka,Japanese Grand Prix,C1,C2,C3
+2022,19,Austin,United States Grand Prix,C2,C3,C4
+2022,20,Mexico City,Mexico City Grand Prix,C2,C3,C4
+2022,21,Interlagos,São Paulo Grand Prix,C2,C3,C4
+2022,22,Yas Marina Circuit,Abu Dhabi Grand Prix,C3,C4,C5
+2021,1,Sakhir,Bahrain Grand Prix,C2,C3,C4
+2021,2,Imola,Emilia Romagna Grand Prix,C2,C3,C4
+2021,3,Algarve International Circuit,Portuguese Grand Prix,C1,C2,C3
+2021,4,Catalunya,Spanish Grand Prix,C1,C2,C3
+2021,5,Monte Carlo,Monaco Grand Prix,C3,C4,C5
+2021,6,Baku,Azerbaijan Grand Prix,C3,C4,C5
+2021,7,Paul Ricard,French Grand Prix,C2,C3,C4
+2021,8,Spielberg,Styrian Grand Prix,C2,C3,C4
+2021,9,Spielberg,Austrian Grand Prix,C3,C4,C5
+2021,10,Silverstone,British Grand Prix,C1,C2,C3
+2021,11,Hungaroring,Hungarian Grand Prix,C2,C3,C4
+2021,12,Spa-Francorchamps,Belgian Grand Prix,C2,C3,C4
+2021,13,Zandvoort,Dutch Grand Prix,C1,C2,C3
+2021,14,Monza,Italian Grand Prix,C2,C3,C4
+2021,15,Sochi,Russian Grand Prix,C3,C4,C5
+2021,16,Istanbul,Turkish Grand Prix,C2,C3,C4
+2021,17,Austin,United States Grand Prix,C2,C3,C4
+2021,18,Mexico City,Mexico City Grand Prix,C2,C3,C4
+2021,19,Interlagos,São Paulo Grand Prix,C2,C3,C4
+2021,20,Losail,Qatar Grand Prix,C1,C2,C3
+2021,21,Jeddah,Saudi Arabian Grand Prix,C2,C3,C4
+2021,22,Yas Marina Circuit,Abu Dhabi Grand Prix,C3,C4,C5
+2020,1,Spielberg,Austrian Grand Prix,C2,C3,C4
+2020,2,Spielberg,Styrian Grand Prix,C2,C3,C4
+2020,3,Hungaroring,Hungarian Grand Prix,C2,C3,C4
+2020,4,Silverstone,British Grand Prix,C1,C2,C3
+2020,5,Silverstone,70th Anniversary Grand Prix,C2,C3,C4
+2020,6,Catalunya,Spanish Grand Prix,C1,C2,C3
+2020,7,Spa-Francorchamps,Belgian Grand Prix,C2,C3,C4
+2020,8,Monza,Italian Grand Prix,C2,C3,C4
+2020,9,Mugello,Tuscan Grand Prix,C1,C2,C3
+2020,10,Sochi,Russian Grand Prix,C3,C4,C5
+2020,11,Nurburgring,Eifel Grand Prix,C2,C3,C4
+2020,12,Algarve International Circuit,Portuguese Grand Prix,C1,C2,C3
+2020,13,Imola,Emilia Romagna Grand Prix,C2,C3,C4
+2020,14,Istanbul,Turkish Grand Prix,C1,C2,C3
+2020,15,Sakhir,Bahrain Grand Prix,C2,C3,C4
+2020,16,Sakhir Outer Track,Sakhir Grand Prix,C2,C3,C4
+2020,17,Yas Marina Circuit,Abu Dhabi Grand Prix,C3,C4,C5
+2019,1,Melbourne,Australian Grand Prix,C2,C3,C4
+2019,2,Sakhir,Bahrain Grand Prix,C1,C2,C3
+2019,3,Shanghai,Chinese Grand Prix,C2,C3,C4
+2019,4,Baku,Azerbaijan Grand Prix,C2,C3,C4
+2019,5,Catalunya,Spanish Grand Prix,C1,C2,C3
+2019,6,Monte Carlo,Monaco Grand Prix,C3,C4,C5
+2019,7,Montreal,Canadian Grand Prix,C3,C4,C5
+2019,8,Paul Ricard,French Grand Prix,C2,C3,C4
+2019,9,Spielberg,Austrian Grand Prix,C2,C3,C4
+2019,10,Silverstone,British Grand Prix,C1,C2,C3
+2019,11,Hockenheim,German Grand Prix,C2,C3,C4
+2019,12,Hungaroring,Hungarian Grand Prix,C2,C3,C4
+2019,13,Spa-Francorchamps,Belgian Grand Prix,C1,C2,C3
+2019,14,Monza,Italian Grand Prix,C2,C3,C4
+2019,15,Singapore,Singapore Grand Prix,C3,C4,C5
+2019,16,Sochi,Russian Grand Prix,C2,C3,C4
+2019,17,Suzuka,Japanese Grand Prix,C1,C2,C3
+2019,18,Mexico City,Mexican Grand Prix,C2,C3,C4
+2019,19,Austin,United States Grand Prix,C2,C3,C4
+2019,20,Interlagos,Brazilian Grand Prix,C1,C2,C3
+2019,21,Yas Marina Circuit,Abu Dhabi Grand Prix,C3,C4,C5
+2018,1,Melbourne,Australian Grand Prix,C3,C4,C5
+2018,2,Sakhir,Bahrain Grand Prix,C2,C3,C4
+2018,3,Shanghai,Chinese Grand Prix,C2,C3,C4
+2018,4,Baku,Azerbaijan Grand Prix,C3,C4,C5
+2018,5,Catalunya,Spanish Grand Prix,C2,C3,C4
+2018,6,Monte Carlo,Monaco Grand Prix,C4,C5,C6
+2018,7,Montreal,Canadian Grand Prix,C4,C5,C6
+2018,8,Paul Ricard,French Grand Prix,C3,C4,C5
+2018,9,Spielberg,Austrian Grand Prix,C3,C4,C5
+2018,10,Silverstone,British Grand Prix,C1,C2,C3
+2018,11,Hockenheim,German Grand Prix,C2,C3,C4
+2018,12,Hungaroring,Hungarian Grand Prix,C2,C3,C4
+2018,13,Spa-Francorchamps,Belgian Grand Prix,C2,C3,C4
+2018,14,Monza,Italian Grand Prix,C2,C3,C4
+2018,15,Singapore,Singapore Grand Prix,C3,C4,C5
+2018,16,Sochi,Russian Grand Prix,C4,C5,C6
+2018,17,Suzuka,Japanese Grand Prix,C2,C3,C4
+2018,18,Austin,United States Grand Prix,C3,C4,C5
+2018,19,Mexico City,Mexican Grand Prix,C4,C5,C6
+2018,20,Interlagos,Brazilian Grand Prix,C2,C3,C4
+2018,21,Yas Marina Circuit,Abu Dhabi Grand Prix,C4,C5,C6
