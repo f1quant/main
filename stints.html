@@ -1015,6 +1015,9 @@
       const selectedCircuit = circuitSelect.value;
       eventsList.innerHTML = "";
 
+      // Reset stint tracking when circuit changes
+      window.previousFilteredStints = [];
+
       if (!selectedCircuit) {
         const placeholder = document.createElement("div");
         placeholder.className = "events-placeholder";
@@ -1053,14 +1056,15 @@
         return;
       }
 
-      events.forEach(ev => {
+      events.forEach((ev, index) => {
         const wrapper = document.createElement("label");
         wrapper.className = "event-item";
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.value = ev.key;
-        checkbox.checked = true;
+        // Only check the last event by default
+        checkbox.checked = (index === events.length - 1);
         checkbox.addEventListener("change", onEventSelectionChange);
 
         const tyreKey = `${ev.year}||${ev.round_no}`;
@@ -1090,6 +1094,13 @@
       if (!checked.length) {
         groupsTableContainer.innerHTML = "";
         return;
+      }
+
+      // If this was triggered by a user event (checkbox change), select all stints
+      const isUserEvent = evt && evt.target && evt.target.type === 'checkbox';
+      if (isUserEvent) {
+        // Clear previous stints tracking to force all stints to be selected
+        window.previousFilteredStints = [];
       }
 
       const selectedEvents = checked
@@ -1853,13 +1864,23 @@
         }
       });
 
-      // Select all stints by default on first load
-      const isFirstLoad = selectedStints.size === 0;
-      if (isFirstLoad) {
-        filteredGroups.forEach((group, key) => {
+      // Track which stints were previously displayed
+      const previousStints = new Set(window.previousFilteredStints || []);
+
+      // Auto-select stints:
+      // 1. All new stints (not in previousStints)
+      // 2. Previously selected stints that are still in the filtered set
+      filteredGroups.forEach((group, key) => {
+        if (!previousStints.has(key)) {
+          // New stint - select by default
           selectedStints.add(key);
-        });
-      }
+        }
+        // If it was previously in the list and selected, it remains selected (already in selectedStints)
+        // If it was previously in the list and not selected, it remains not selected
+      });
+
+      // Store current stints for next comparison
+      window.previousFilteredStints = Array.from(filteredGroups.keys());
 
       // Render scatter plot with selected stints only (or all if none selected)
       renderScatterPlot(filteredGroups, selectedStints);
