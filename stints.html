@@ -1064,6 +1064,7 @@
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
+        checkbox.className = "event-checkbox";
         checkbox.value = ev.key;
         // Only check the last event by default
         checkbox.checked = (index === events.length - 1);
@@ -1098,9 +1099,10 @@
         return;
       }
 
-      // If this was triggered by a user event (checkbox change), select all stints
-      const isUserEvent = evt && evt.target && evt.target.type === 'checkbox';
-      if (isUserEvent) {
+      // If this was triggered by an event checkbox (not a filter checkbox), select all stints
+      const isEventCheckbox = evt && evt.target && evt.target.type === 'checkbox' &&
+                             evt.target.classList.contains('event-checkbox');
+      if (isEventCheckbox) {
         // Clear previous stints tracking to force all stints to be selected
         window.previousFilteredStints = [];
       }
@@ -1873,17 +1875,30 @@
       // Track which stints were previously displayed
       const previousStints = new Set(window.previousFilteredStints || []);
 
-      // Auto-select stints:
-      // 1. All new stints (not in previousStints)
-      // 2. Previously selected stints that are still in the filtered set
-      filteredGroups.forEach((group, key) => {
-        if (!previousStints.has(key)) {
-          // New stint - select by default
+      // Check if this is a fresh event selection (previousFilteredStints was cleared)
+      const isEventChange = previousStints.size === 0 && filteredGroups.size > 0;
+
+      if (isEventChange) {
+        // Event changed - select all stints
+        selectedStints.clear();
+        filteredGroups.forEach((group, key) => {
           selectedStints.add(key);
-        }
-        // If it was previously in the list and selected, it remains selected (already in selectedStints)
-        // If it was previously in the list and not selected, it remains not selected
-      });
+        });
+      } else {
+        // Filter changed - maintain selection only for stints that were in previous view
+        // Remove all selections first, then restore only those that should remain
+        const stintsToKeep = new Set();
+        selectedStints.forEach(key => {
+          // Keep selection only if:
+          // 1. Stint is in current filtered set
+          // 2. Stint was in previous filtered set (continuously visible)
+          if (filteredGroups.has(key) && previousStints.has(key)) {
+            stintsToKeep.add(key);
+          }
+        });
+        selectedStints.clear();
+        stintsToKeep.forEach(key => selectedStints.add(key));
+      }
 
       // Store current stints for next comparison
       window.previousFilteredStints = Array.from(filteredGroups.keys());
