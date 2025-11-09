@@ -1645,6 +1645,8 @@
             } else if (column === 'compound') {
               const compound = getUniqueValue(group.rows, 'lap_Compound');
               uniqueValues.add(compound);
+            } else if (column === 'session_type') {
+              uniqueValues.add(group.session_type);
             }
           });
 
@@ -1708,6 +1710,8 @@
         } else if (column === 'compound') {
           const compound = getUniqueValue(group.rows, 'lap_Compound');
           if (compound === value) matches = true;
+        } else if (column === 'session_type' && group.session_type === value) {
+          matches = true;
         }
 
         if (matches) {
@@ -1895,7 +1899,7 @@
               <th><input type="checkbox" id="selectAllCheckbox" class="stint-checkbox"></th>
               <th>Event</th>
               <th class="clickable-header" data-column="driver">Driver</th>
-              <th>Session Type</th>
+              <th class="clickable-header" data-column="session_type">Session Type</th>
               <th>Stint</th>
               <th>Lap Count</th>
               <th>Sched Laps</th>
