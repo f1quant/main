@@ -652,7 +652,7 @@
     <div id="chartsWrapper" class="charts-wrapper" style="display: none;">
       <div id="scatterChartContainer" class="chart-container">
         <div class="chart-title">Tire Degradation Analysis: Deg vs Pace</div>
-        <canvas id="scatterChart"></canvas>
+        <div id="scatterChart" style="width: 100%; height: 400px;"></div>
         <div id="equationsSection" class="equations-section" style="display: none;">
           <div class="equations-title">Best Fit Equations (Deg = m × Pace + b)</div>
           <div id="equationsGrid" class="equations-grid"></div>
@@ -742,10 +742,7 @@
   <!-- Simple Statistics for linear regression -->
   <script src="https://unpkg.com/simple-statistics@7.8.3/dist/simple-statistics.min.js"></script>
 
-  <!-- Chart.js for scatter plot -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-  <!-- ECharts for lap time chart -->
+  <!-- ECharts for charts -->
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 
   <script>
@@ -754,7 +751,7 @@
     const statusMessage = document.getElementById("statusMessage");
     const groupsTableContainer = document.getElementById("groupsTableContainer");
     const chartsWrapper = document.getElementById("chartsWrapper");
-    const scatterChartCanvas = document.getElementById("scatterChart");
+    const scatterChartContainer = document.getElementById("scatterChart");
     const lapTimeChartContainer = document.getElementById("lapTimeChart");
     const equationsSection = document.getElementById("equationsSection");
     const equationsGrid = document.getElementById("equationsGrid");
@@ -764,7 +761,7 @@
     let allRows = [];
     let eventsByKey = new Map(); // key -> {year, round_no, meeting_name, circuit_name}
     let tyreChoices = new Map(); // key (year||round_no) -> {hard, medium, soft}
-    let scatterChart = null; // Chart.js instance
+    let scatterChart = null; // ECharts instance
     let lapTimeChart = null; // ECharts instance for lap times
     let selectedStints = new Set(); // Set of selected stint keys
     let activeDropdown = null; // Active header dropdown
@@ -776,6 +773,9 @@
     window.addEventListener('resize', () => {
       if (lapTimeChart) {
         lapTimeChart.resize();
+      }
+      if (scatterChart) {
+        scatterChart.resize();
       }
     });
 
@@ -1167,25 +1167,33 @@
       // Store regression equations for display
       const regressionEquations = new Map();
 
-      // Convert to Chart.js format
-      const chartDatasets = [];
+      // Convert to ECharts format
+      const series = [];
       datasets.forEach((points, compound) => {
         const color = getF1TireColor(compound);
 
-        // Add scatter points
-        chartDatasets.push({
-          label: compound,
-          data: points,
-          backgroundColor: color,
-          borderColor: color,
-          borderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          type: 'scatter'
+        // Convert points to ECharts format
+        const scatterData = points.map(p => ({
+          value: [p.x, p.y],
+          label: p.label
+        }));
+
+        // Add scatter series
+        series.push({
+          name: compound,
+          type: 'scatter',
+          data: scatterData,
+          symbolSize: 8,
+          itemStyle: {
+            color: color,
+            borderColor: color,
+            borderWidth: 0
+          },
+          emphasis: { focus: 'series', blurScope: 'global', itemStyle: { borderWidth: 2, shadowBlur: 10, shadowColor: color } },
+          blur: { itemStyle: { opacity: 0.3 } }
         });
 
         // Calculate regression line for this compound (deg vs pace)
-        // Extract x (pace) and y (deg) values
         const xValues = points.map(p => p.x);
         const yValues = points.map(p => p.y);
 
@@ -1214,24 +1222,24 @@
 
             // Create two points for the regression line
             const lineData = [
-              { x: minX, y: regression.m * minX + regression.b },
-              { x: maxX, y: regression.m * maxX + regression.b }
+              [minX, regression.m * minX + regression.b],
+              [maxX, regression.m * maxX + regression.b]
             ];
 
-            // Add regression line dataset
-            // For hard (white) tires, use black color for visibility
-            const lineBorderColor = compound.toLowerCase() === 'hard' ? '#FFFFFF' : color;
-
-            chartDatasets.push({
-              label: `${compound} trend`,
-              data: lineData,
-              borderColor: lineBorderColor,
-              borderWidth: 2,
-              borderDash: [5, 5],
-              pointRadius: 0,
-              fill: false,
+            // Add regression line series
+            series.push({
+              name: `${compound} trend`,
               type: 'line',
-              showLine: true
+              data: lineData,
+              showSymbol: false,
+              lineStyle: {
+                color: color,
+                width: 2,
+                type: 'dashed'
+              },
+              emphasis: { disabled: true },
+              silent: true,
+              zlevel: -1
             });
           } catch (error) {
             console.error(`Error calculating regression for ${compound}:`, error);
@@ -1239,94 +1247,74 @@
         }
       });
 
-      // Destroy existing chart if it exists
-      if (scatterChart) {
-        scatterChart.destroy();
-      }
-
       // Show chart container if we have data
-      if (chartDatasets.length > 0) {
+      if (series.length > 0) {
         chartsWrapper.style.display = 'grid';
 
-        // Create new chart (using mixed type to support both scatter and line)
-        scatterChart = new Chart(scatterChartCanvas, {
-          type: 'scatter',
-          data: {
-            datasets: chartDatasets
+        // Initialize ECharts instance if not already created (after showing container)
+        if (!scatterChart) {
+          scatterChart = echarts.init(scatterChartContainer);
+        }
+
+        scatterChart.setOption({
+          backgroundColor: 'transparent',
+          grid: { left: 60, right: 20, top: 50, bottom: 60 },
+          legend: {
+            show: true,
+            top: 5,
+            textStyle: { color: '#f5f5f5', fontSize: 11 },
+            itemWidth: 12,
+            itemHeight: 12,
+            selector: false,
+            data: Array.from(datasets.keys()) // Only show compound names, not trend lines
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 2,
-            plugins: {
-              legend: {
-                display: true,
-                position: 'top',
-                labels: {
-                  color: '#f5f5f5',
-                  font: {
-                    size: 11
-                  },
-                  usePointStyle: true,
-                  boxWidth: 6,
-                  boxHeight: 6,
-                  filter: function(item, chart) {
-                    // Hide trend line datasets from legend
-                    return !item.text.includes('trend');
-                  }
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    const point = context.raw;
-                    return [
-                      point.label,
-                      `Pace: ${point.x.toFixed(4)}`,
-                      `Deg: ${point.y.toFixed(4)}`
-                    ];
-                  }
-                }
+          tooltip: {
+            show: true,
+            trigger: 'item',
+            confine: true,
+            borderColor: '#2a2f3a',
+            backgroundColor: 'rgba(26,29,36,0.96)',
+            textStyle: { color: '#e8e8e8' },
+            extraCssText: 'padding:10px 12px;border-radius:10px',
+            formatter: (p) => {
+              if (p.seriesType === 'scatter') {
+                const data = p.data;
+                return `
+                  <strong>${data.label}</strong><br/>
+                  Pace: ${data.value[0].toFixed(4)}<br/>
+                  Deg: ${data.value[1].toFixed(4)}
+                `;
               }
-            },
-            scales: {
-              x: {
-                title: {
-                  display: true,
-                  text: 'Pace',
-                  color: '#00e0ff',
-                  font: {
-                    size: 12,
-                    weight: 600
-                  }
-                },
-                ticks: {
-                  color: '#9ca3af'
-                },
-                grid: {
-                  color: 'rgba(148, 163, 253, 0.1)'
-                }
-              },
-              y: {
-                title: {
-                  display: true,
-                  text: 'Deg',
-                  color: '#00e0ff',
-                  font: {
-                    size: 12,
-                    weight: 600
-                  }
-                },
-                ticks: {
-                  color: '#9ca3af'
-                },
-                grid: {
-                  color: 'rgba(148, 163, 253, 0.1)'
-                }
-              }
+              return '';
             }
-          }
-        });
+          },
+          xAxis: {
+            type: 'value',
+            scale: true,
+            name: 'Pace',
+            nameLocation: 'middle',
+            nameGap: 30,
+            nameTextStyle: { color: '#00e0ff', fontSize: 12, fontWeight: 600 },
+            axisLine: { lineStyle: { color: '#9ca3af' } },
+            axisLabel: { color: '#9ca3af' },
+            splitLine: { lineStyle: { color: 'rgba(148, 163, 253, 0.1)' } }
+          },
+          yAxis: {
+            type: 'value',
+            scale: true,
+            name: 'Deg',
+            nameLocation: 'middle',
+            nameGap: 45,
+            nameTextStyle: { color: '#00e0ff', fontSize: 12, fontWeight: 600 },
+            axisLine: { lineStyle: { color: '#9ca3af' } },
+            axisLabel: { color: '#9ca3af' },
+            splitLine: { lineStyle: { color: 'rgba(148, 163, 253, 0.1)' } }
+          },
+          series: series
+        }, true);
+
+        // Resize chart to ensure it fills the container properly
+        scatterChart.resize();
 
         // Display regression equations
         if (regressionEquations.size > 0) {
