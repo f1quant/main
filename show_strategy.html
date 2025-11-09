@@ -368,11 +368,52 @@
 
     let allRows = [];
     let sessionsByKey = new Map();
+    let driverInfoRows = [];
 
     init();
 
     function init() {
-      loadCSV();
+      loadDriverInfo();
+    }
+
+    function loadDriverInfo() {
+      Papa.parse(DataCache.getCSVUrl("driver_info.csv"), {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        complete: function (results) {
+          if (results.errors && results.errors.length) {
+            console.warn("Papa Parse errors loading driver_info:", results.errors);
+          }
+
+          driverInfoRows = results.data || [];
+          console.log(`Loaded ${driverInfoRows.length} driver info rows`);
+          loadCSV();
+        },
+        error: function (err) {
+          console.error("Error loading driver_info.csv:", err);
+          loadCSV(); // Continue even if driver colors fail
+        }
+      });
+    }
+
+    function getDriverColorsForSession(year, round, sessionType) {
+      const colorMap = new Map();
+
+      driverInfoRows.forEach(row => {
+        const rowYear = String(row.year || "").trim();
+        const rowRound = String(row.round_no || "").trim();
+        const rowSession = String(row.session_type || "").trim();
+        const driver = String(row.driver || "").trim();
+        const color = String(row.color || "").trim();
+
+        if (rowYear === year && rowRound === round && rowSession === sessionType && driver && color) {
+          colorMap.set(driver, color);
+        }
+      });
+
+      return colorMap;
     }
 
     function loadCSV() {
@@ -490,7 +531,7 @@
         return;
       }
 
-      renderStrategyChart(sessionRows);
+      renderStrategyChart(sessionRows, selectedSeason, round, selectedSession);
       strategyContainer.classList.add('show');
     }
 
@@ -506,7 +547,10 @@
       return colorMap[compoundLower] || '#999999';
     }
 
-    function renderStrategyChart(rows) {
+    function renderStrategyChart(rows, year, round, sessionType) {
+      // Get driver colors for this specific session
+      const driverColors = getDriverColorsForSession(year, round, sessionType);
+
       // Group by driver
       const driverData = new Map();
 
@@ -590,6 +634,12 @@
         const label = document.createElement('div');
         label.className = 'driver-label';
         label.textContent = data.driver;
+
+        // Apply driver color if available
+        const driverColor = driverColors.get(data.driver);
+        if (driverColor) {
+          label.style.color = driverColor;
+        }
 
         const bar = document.createElement('div');
         bar.className = 'strategy-bar';
