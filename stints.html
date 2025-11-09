@@ -1262,12 +1262,19 @@
             const correlation = ss.sampleCorrelation(xValues, yValues);
             const rSquared = correlation * correlation;
 
+            // Calculate standard deviations and averages
+            const stdPace = ss.sampleStandardDeviation(xValues);
+            const avgDeg = ss.mean(yValues);
+
             // Store equation for display
             regressionEquations.set(compound, {
               slope: regression.m,
               intercept: regression.b,
               rSquared: rSquared,
+              correlation: correlation,
               n: points.length,
+              stdPace: stdPace,
+              avgDeg: avgDeg,
               color: color
             });
 
@@ -1412,7 +1419,7 @@
 
             equationDiv.innerHTML = `
               <strong>${compound}:</strong> Deg = ${slopeStr} × Pace ${interceptStr}
-              (R² = ${eq.rSquared.toFixed(3)}, n = ${eq.n})
+              (n = ${eq.n}, corr = ${eq.correlation.toFixed(3)}, std(pace) = ${eq.stdPace.toFixed(3)}, avg(deg) = ${eq.avgDeg.toFixed(4)})
             `;
 
             equationsGrid.appendChild(equationDiv);
