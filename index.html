@@ -669,6 +669,30 @@
         : maxLap;
       const rightX = (maxLap === lapCount) ? (maxLap + 0.5) : (maxLap + 0.1);
 
+      // First pass: collect all raw gaps for selected drivers by lap
+      const gapsByLap = new Map(); // lap# -> array of gaps from selected drivers
+
+      selectedDrivers.forEach(driver => {
+        const data = driverLines[driver];
+        if (!data) return;
+
+        for (let i = 0; i < data.laps.length; i++) {
+          const lap = data.laps[i];
+          if (lap >= minLap && lap <= maxLap) {
+            if (!gapsByLap.has(lap)) {
+              gapsByLap.set(lap, []);
+            }
+            gapsByLap.get(lap).push(data.gaps[i]);
+          }
+        }
+      });
+
+      // Calculate max gap for each lap (among selected drivers only)
+      const maxGapByLap = new Map();
+      gapsByLap.forEach((gaps, lap) => {
+        maxGapByLap.set(lap, Math.max(...gaps));
+      });
+
       // Prepare series data
       const series = [];
 
@@ -676,14 +700,17 @@
         const data = driverLines[driver];
         if (!data) return;
 
-        // Filter by lap range
+        // Filter by lap range and adjust gaps
         const points = [];
         let lastGap = null;
         for (let i = 0; i < data.laps.length; i++) {
           const lap = data.laps[i];
           if (lap >= minLap && lap <= maxLap) {
-            points.push([lap, data.gaps[i]]);
-            lastGap = data.gaps[i];
+            const rawGap = data.gaps[i];
+            const maxGap = maxGapByLap.get(lap) || 0;
+            const adjustedGap = rawGap - maxGap;
+            points.push([lap, adjustedGap]);
+            lastGap = adjustedGap;
           }
         }
 
