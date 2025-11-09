@@ -710,26 +710,26 @@
       </div>
 
       <div class="filter-panel">
-        <div class="filters-title">Exclude</div>
+        <div class="filters-title">Include</div>
         <div class="exclude-checkboxes">
           <div class="checkbox-group">
-            <input type="checkbox" id="filterIncludeLapped">
+            <input type="checkbox" id="filterIncludeLapped" checked>
             <label for="filterIncludeLapped">Lapped</label>
           </div>
           <div class="checkbox-group">
-            <input type="checkbox" id="filterIncludeRetired">
+            <input type="checkbox" id="filterIncludeRetired" checked>
             <label for="filterIncludeRetired">Retired</label>
           </div>
           <div class="checkbox-group">
-            <input type="checkbox" id="filterRainfall" checked>
+            <input type="checkbox" id="filterRainfall">
             <label for="filterRainfall">Rainfall</label>
           </div>
           <div class="checkbox-group">
-            <input type="checkbox" id="filterSafetyCar" checked>
+            <input type="checkbox" id="filterSafetyCar">
             <label for="filterSafetyCar">Safety Car</label>
           </div>
           <div class="checkbox-group">
-            <input type="checkbox" id="filterPitLaps" checked>
+            <input type="checkbox" id="filterPitLaps">
             <label for="filterPitLaps">Pit Laps</label>
           </div>
         </div>
@@ -947,50 +947,54 @@
       const minLap = lapsToDiscard + 1;
       const endLaps = parseInt(document.getElementById("filterEndLaps").value) || 5;
       const minDist = parseFloat(document.getElementById("filterMinDist").value) || 10;
-      const excludeRainfall = document.getElementById("filterRainfall").checked;
-      const excludeSafetyCar = document.getElementById("filterSafetyCar").checked;
-      const excludePitLaps = document.getElementById("filterPitLaps").checked;
-      const excludeLapped = document.getElementById('filterIncludeLapped').checked;
-      const excludeRetired = document.getElementById('filterIncludeRetired').checked;
-      
+      const includeRainfall = document.getElementById("filterRainfall").checked;
+      const includeSafetyCar = document.getElementById("filterSafetyCar").checked;
+      const includePitLaps = document.getElementById("filterPitLaps").checked;
+      const includeLapped = document.getElementById('filterIncludeLapped').checked;
+      const includeRetired = document.getElementById('filterIncludeRetired').checked;
+
       return rows.filter(r => {
         // Min lap number
         const lapNum = parseInt(r.lap_LapNumber);
         if (isNaN(lapNum) || lapNum < minLap) return false;
-        
+
         // Max lap number (sched_laps - endLaps)
         const schedLaps = parseInt(r.sched_laps);
         if (!isNaN(schedLaps)) {
           const maxLap = schedLaps - endLaps;
           if (lapNum > maxLap) return false;
         }
-        
+
+        // Finish status filters
         const status = String(r.finish_status ?? "").trim();
         const plusLapsMatch = status.match(/^\+(\d+)\sLaps$/);
         const lapsBehind = plusLapsMatch ? Number(plusLapsMatch[1]) : 0;
-        if (lapsBehind > 1) return false; // "+2 Laps", "+3 Laps", etc.: exclude
-        const isLapped = status === "Lapped" || status === "+1 Lap";
-        if (excludeLapped && isLapped) return false;
-        const isFinished = status === "Finished" || isLapped;
-        if (excludeRetired && !isFinished) return false;
+        if (lapsBehind > 1) return false; // Always exclude "+2 Laps", "+3 Laps", etc.
 
-        // Rainfall
-        if (excludeRainfall) {
+        const isLapped = status === "Lapped" || status === "+1 Lap";
+        if (!includeLapped && isLapped) return false;
+
+        const isFinished = status === "Finished" || isLapped;
+        const isRetired = !isFinished;
+        if (!includeRetired && isRetired) return false;
+
+        // Rainfall filter
+        if (!includeRainfall) {
           const rainfall = String(r.weather_Rainfall || "").trim().toLowerCase();
           if (rainfall === "true" || rainfall === "1") return false;
         }
-        
-        // Safety car
-        if (excludeSafetyCar) {
-          const trackStatus = String(r.lap_TrackStatus || "");
-          if (trackStatus.includes("4") || trackStatus.includes("5") || 
+
+        // Safety car filter
+        if (!includeSafetyCar) {
+          const trackStatus = String(r.lap_TrackStatus || "").trim();
+          if (trackStatus.includes("4") || trackStatus.includes("5") ||
               trackStatus.includes("6") || trackStatus.includes("7")) {
             return false;
           }
         }
-        
-        // Pit laps
-        if (excludePitLaps) {
+
+        // Pit laps filter
+        if (!includePitLaps) {
           const pitIn = String(r.lap_PitInTime || "").trim();
           const pitOut = String(r.lap_PitOutTime || "").trim();
           if ((pitIn && pitIn.toLowerCase() !== "na" && pitIn !== "") ||
@@ -998,11 +1002,11 @@
             return false;
           }
         }
-        
-        // Min distance
+
+        // Min distance filter
         const dist = parseFloat(r.min_dist);
         if (!isNaN(dist) && dist < minDist) return false;
-        
+
         return true;
       });
     }
