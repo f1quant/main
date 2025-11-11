@@ -60,6 +60,48 @@ const DataCache = {
 
 // No initialization needed - we use sessionStorage which is cleared between browser sessions
 
+// Create top navigation dynamically
+function createTopNav() {
+  // Check if nav already exists (manually created)
+  if (document.querySelector('nav.top-nav')) return;
+
+  // Get current page from data attribute or infer from URL
+  const currentPage = document.body.dataset.page || inferCurrentPage();
+
+  // Create nav element
+  const nav = document.createElement('nav');
+  nav.className = 'top-nav';
+
+  // Define navigation links
+  const links = [
+    { href: 'strategy.html', text: 'Strategy', page: 'strategy' },
+    { href: 'race_trace.html', text: 'Race Trace', page: 'race_trace' },
+    { href: 'tyre_deg.html', text: 'Tyre Deg', page: 'tyre_deg' },
+    { href: 'calculator.html', text: 'Calculator', page: 'calculator' }
+  ];
+
+  // Create links
+  links.forEach(link => {
+    const a = document.createElement('a');
+    a.href = link.href;
+    a.textContent = link.text;
+    if (link.page === currentPage) {
+      a.className = 'active';
+    }
+    nav.appendChild(a);
+  });
+
+  // Insert at beginning of body
+  document.body.insertBefore(nav, document.body.firstChild);
+}
+
+// Infer current page from URL
+function inferCurrentPage() {
+  const path = window.location.pathname;
+  const filename = path.split('/').pop().replace('.html', '');
+  return filename || 'strategy';
+}
+
 // Add reload data button to navigation
 function addReloadDataButton() {
   const nav = document.querySelector('nav');
@@ -107,11 +149,17 @@ function addReloadDataButton() {
   nav.appendChild(button);
 }
 
+// Initialize navigation on DOM load
+function initNavigation() {
+  createTopNav();
+  addReloadDataButton();
+}
+
 // Initialize on DOM load
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', addReloadDataButton);
+  document.addEventListener('DOMContentLoaded', initNavigation);
 } else {
-  addReloadDataButton();
+  initNavigation();
 }
 
 // Common UI utilities
