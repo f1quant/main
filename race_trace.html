@@ -719,8 +719,13 @@
       // Add rainfall shading as a markArea series
       if (rainfallRanges.length > 0) {
         const markAreaData = rainfallRanges.map(range => [
-          { xAxis: range.start - 0.5 }, // Start of the range
-          { xAxis: range.end + 0.5 }     // End of the range
+          {
+            xAxis: range.start - 0.5,
+            name: range.start === range.end
+              ? `Rainfall (Lap ${range.start})`
+              : `Rainfall (Laps ${range.start}-${range.end})`
+          },
+          { xAxis: range.end + 0.5 }
         ]);
 
         series.push({
@@ -728,13 +733,18 @@
           type: 'line',
           data: [],
           markArea: {
-            silent: true,
+            silent: false,
             itemStyle: {
               color: 'rgba(30, 144, 255, 0.1)' // Blue with transparency
             },
             data: markAreaData,
             label: {
               show: false
+            },
+            tooltip: {
+              formatter: (params) => {
+                return params.name;
+              }
             }
           },
           animation: false
@@ -744,8 +754,13 @@
       // Add safety car shading as a markArea series
       if (safetyCarRanges.length > 0) {
         const markAreaData = safetyCarRanges.map(range => [
-          { xAxis: range.start - 0.5 }, // Start of the range
-          { xAxis: range.end + 0.5 }     // End of the range
+          {
+            xAxis: range.start - 0.5,
+            name: range.start === range.end
+              ? `Safety Car (Lap ${range.start})`
+              : `Safety Car (Laps ${range.start}-${range.end})`
+          },
+          { xAxis: range.end + 0.5 }
         ]);
 
         series.push({
@@ -753,13 +768,18 @@
           type: 'line',
           data: [],
           markArea: {
-            silent: true,
+            silent: false,
             itemStyle: {
               color: 'rgba(150, 150, 7, 0.15)'
             },
             data: markAreaData,
             label: {
               show: false
+            },
+            tooltip: {
+              formatter: (params) => {
+                return params.name;
+              }
             }
           },
           animation: false
@@ -770,6 +790,7 @@
       if (redFlagLaps.length > 0) {
         const markLineData = redFlagLaps.map(lap => ({
           xAxis: lap,
+          name: `Red Flag (Lap ${lap})`,
           label: {
             show: false
           }
@@ -780,7 +801,7 @@
           type: 'line',
           data: [],
           markLine: {
-            silent: true,
+            silent: false,
             symbol: 'none',
             lineStyle: {
               color: 'rgba(255, 0, 0, 0.5)',
@@ -790,6 +811,11 @@
             data: markLineData,
             label: {
               show: false
+            },
+            tooltip: {
+              formatter: (params) => {
+                return params.name;
+              }
             }
           },
           animation: false
