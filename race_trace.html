@@ -8,14 +8,31 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <script src="common.js"></script>
   <style>
-    :root { --bg:#0f1115; --fg:#e8e8e8; --muted:#8b8b8b; --panel:#1a1d24; --border:#232833; --accent:#00e0ff; }
-    body { margin:0; font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); }
+    /* Page-specific overrides */
+    :root { --bg:#0f1115; --fg:#e8e8e8; --muted:#8b8b8b; --panel:#1a1d24; --border:#232833; }
+    body { font-size:14px; background:var(--bg); color:var(--fg); }
+
+    /* Simpler select styling for this page */
+    select {
+      background:#11141a;
+      color:var(--fg);
+      border:1px solid #2a2f3a;
+      padding:6px 8px;
+      border-radius:8px;
+      min-width: 160px;
+      width: auto;
+      background-image: none;
+      transform: none !important;
+    }
+    select:hover:not(:disabled) {
+      transform: none;
+      box-shadow: none;
+    }
+
+    input[type="number"] { width:90px; }
 
     header { padding:10px 14px; background:var(--panel); display:flex; gap:12px; align-items:center; flex-wrap:wrap; border-bottom:1px solid var(--border); }
     .title { font-weight:600; margin-right:auto; }
-    label.small { color:var(--muted); font-size:12px; }
-    select { background:#11141a; color:var(--fg); border:1px solid #2a2f3a; padding:6px 8px; border-radius:8px; min-width: 160px; }
-    select:disabled { opacity: 0.5; cursor: not-allowed; }
     .small { color:var(--muted); font-size:12px; }
     .layout { display:grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 56px - 45px); }
     #sidebar { background:var(--panel); border-right:1px solid var(--border); display:flex; flex-direction:column; }
@@ -25,22 +42,9 @@
     .driver:hover { background:#141820; }
     #chart { width:100%; height:100%; }
     .buttons { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
-    .buttons button { background:#11141a; color:var(--fg); border:1px solid #2a2f3a; padding:6px 8px; border-radius:8px; cursor:pointer; }
     .hint { color:var(--muted); font-size:12px; margin-top:6px; }
     .credit { position:fixed; left:12px; bottom:10px; z-index:9999; font-size:12px; color:var(--muted); text-decoration:none; opacity:0.9; }
     .credit:hover { text-decoration:underline; opacity:1; }
-
-    input[type="number"]{
-      background:#11141a; color:var(--fg);
-      border:1px solid #2a2f3a; padding:6px 8px;
-      border-radius:8px; width:90px;
-    }
-
-    .status-message {
-      color: var(--muted);
-      font-size: 12px;
-      margin-left: auto;
-    }
 
     .debug-info {
       padding: 20px;
@@ -48,7 +52,6 @@
       font-size: 14px;
     }
 
-    input[type="checkbox"] { cursor:pointer; }
     .driver label { cursor:pointer; user-select:none; }
   </style>
 </head>
