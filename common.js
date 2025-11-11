@@ -2,43 +2,32 @@
 
 // Cache management
 const DataCache = {
-  // Storage keys
+  // Storage key for cache bust flag
   CACHE_BUST_KEY: 'f1_data_cache_bust',
-  SESSION_VERSION_KEY: 'f1_session_version',
 
   // Cache of bust parameter for this page load
-  _sessionVersion: null,
-  _sessionVersionInitialized: false,
+  _bustParam: null,
+  _bustParamInitialized: false,
 
-  // Get or create session version (persists for entire browser session)
-  getSessionVersion() {
-    if (!this._sessionVersionInitialized) {
-      // Check if we have a reload flag set
-      const reloadFlag = sessionStorage.getItem(this.CACHE_BUST_KEY);
-      if (reloadFlag) {
-        // Reload was requested - create new session version
-        this._sessionVersion = reloadFlag;
-        sessionStorage.setItem(this.SESSION_VERSION_KEY, reloadFlag);
-        sessionStorage.removeItem(this.CACHE_BUST_KEY);
-      } else {
-        // Check if we already have a session version
-        this._sessionVersion = sessionStorage.getItem(this.SESSION_VERSION_KEY);
-      }
-      this._sessionVersionInitialized = true;
-    }
-    return this._sessionVersion;
-  },
-
-  // Check if we should bust cache
+  // Check if we should bust cache (only for this page load, then cleared)
   shouldBustCache() {
-    return this.getSessionVersion();
+    if (!this._bustParamInitialized) {
+      this._bustParam = sessionStorage.getItem(this.CACHE_BUST_KEY);
+      this._bustParamInitialized = true;
+
+      if (this._bustParam) {
+        // Clear the flag immediately after reading it
+        sessionStorage.removeItem(this.CACHE_BUST_KEY);
+      }
+    }
+    return this._bustParam;
   },
 
-  // Get CSV URL - add cache buster if session version exists
+  // Get CSV URL - only add cache buster if reload was just requested
   getCSVUrl(filename) {
-    const sessionVersion = this.getSessionVersion();
-    if (sessionVersion) {
-      const url = `${filename}?v=${sessionVersion}`;
+    const bustParam = this.shouldBustCache();
+    if (bustParam) {
+      const url = `${filename}?v=${bustParam}`;
       return url;
     }
     // No query parameter - let browser use normal HTTP caching
@@ -184,11 +173,14 @@ const ParsedDataCache = {
 
   // Load CSV with caching - wrapper around Papa.parse
   loadCSV(filename, config) {
-    // Check if we should bust cache
-    const shouldBust = DataCache.shouldBustCache();
+    // Check if cache bust is active (returns timestamp string or null)
+    const cacheBustVersion = DataCache.shouldBustCache();
 
-    // Try to get from cache if not busting
-    if (!shouldBust) {
+    if (cacheBustVersion) {
+      // Cache bust is active - skip cache and load fresh data
+      this._loadAndParse(filename, config);
+    } else {
+      // No cache bust - try to get from IndexedDB cache first
       this.get(filename).then(cached => {
         if (cached) {
           // Use cached data
@@ -203,9 +195,6 @@ const ParsedDataCache = {
         // Error accessing cache - just load and parse
         this._loadAndParse(filename, config);
       });
-    } else {
-      // Cache bust requested - load and parse
-      this._loadAndParse(filename, config);
     }
   },
 
