@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lap Grouping Analysis</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    /* Page-specific styles */
+    .page-content {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 8px 16px 16px;
+    }
+
+    .container {
+      max-width: 1400px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 8px;
+      padding: 0;
+    }
+
+    .circuit-selector {
+      min-width: 200px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.horizontal {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filters-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .chart-and-drivers {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .chart-wrapper {
+      flex: 1;
+    }
+
+    .drivers-panel {
+      width: 200px;
+      padding: 12px;
+      background: rgba(0, 224, 255, 0.03);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .drivers-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .driver-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      margin-bottom: 2px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: var(--text-color);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .driver-item:hover {
+      background: rgba(0, 224, 255, 0.1);
+    }
+
+    .driver-item input[type="checkbox"] {
+      accent-color: var(--accent-color);
+      width: 13px;
+      height: 13px;
+      cursor: pointer;
+    }
+
+    .driver-item label {
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .toggle-button {
+      padding: 4px 12px;
+      font-size: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text-color);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .toggle-button.active {
+      background: var(--accent-color);
+      color: #000;
+      border-color: var(--accent-color);
+    }
+
+    .toggle-button:hover {
+      border-color: var(--accent-color);
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .filter-panel {
+      padding: 16px;
+      background: rgba(0, 224, 255, 0.03);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+    }
+
+    .filters-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .filters-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-item.vertical {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+    }
+
+    .filter-label {
+      font-size: 10px;
+      color: var(--muted-color);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    input[type="number"] {
+      width: 100px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      accent-color: var(--accent-color);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      font-size: 11px;
+      color: var(--text-color);
+      cursor: pointer;
+    }
+
+    .exclude-checkboxes {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .groups-table {
+      margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .groups-table th {
+      background: rgba(0, 224, 255, 0.1);
+      color: var(--accent-color);
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .groups-table td {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .groups-table tr:hover {
+      background: rgba(0, 224, 255, 0.05);
+    }
+
+    .groups-table td:last-child {
+      max-width: 600px;
+      word-wrap: break-word;
+      white-space: normal;
+    }
+
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 18px 14px 14px;
+      }
+      .controls {
+        grid-template-columns: 1fr;
+      }
+      .title {
+        font-size: 18px;
+      }
+      .subtitle {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-content">
+  <div class="container">
+    <div class="header">
+      <div class="field horizontal circuit-selector">
+        <div class="label">Circuit</div>
+        <select id="circuitSelect">
+          <option value="">—</option>
+        </select>
+      </div>
+      <div class="field horizontal circuit-selector">
+        <div class="label">Event</div>
+        <select id="eventSelect">
+          <option value="">—</option>
+        </select>
+      </div>
+      <div class="status-message" id="statusMessage">Loading...</div>
+    </div>
+
+    <div class="filters-section">
+      <div class="filter-panel">
+        <div class="filters-title">Lap Filters</div>
+        <div class="filters-grid">
+          <div class="filter-item">
+            <div class="filter-label">Laps to Discard at Start</div>
+            <input type="number" id="filterMinLap" value="1" min="0">
+          </div>
+          <div class="filter-item">
+            <div class="filter-label">Laps to Discard at End</div>
+            <input type="number" id="filterEndLaps" value="1" min="0">
+          </div>
+          <div class="filter-item">
+            <div class="filter-label">Min Distance to Car Ahead</div>
+            <input type="number" id="filterMinDist" value="3" min="0" step="0.1">
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-panel">
+        <div class="filters-title">Adjustments</div>
+        <div class="filters-grid">
+          <div class="filter-item">
+            <div class="filter-label">Hard Deg (sec/lap)</div>
+            <input type="number" id="degHard" value="0.05" min="0" step="0.01">
+          </div>
+          <div class="filter-item">
+            <div class="filter-label">Medium Deg (sec/lap)</div>
+            <input type="number" id="degMedium" value="0.08" min="0" step="0.01">
+          </div>
+          <div class="filter-item">
+            <div class="filter-label">Soft Deg (sec/lap)</div>
+            <input type="number" id="degSoft" value="0.12" min="0" step="0.01">
+          </div>
+          <div class="filter-item">
+            <div class="filter-label">Fuel Effect (sec/lap)</div>
+            <input type="number" id="fuelEffect" value="0.03" min="0" step="0.01">
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-panel">
+        <div class="filters-title">Include</div>
+        <div class="exclude-checkboxes">
+          <div class="checkbox-group">
+            <input type="checkbox" id="filterIncludeLapped" checked>
+            <label for="filterIncludeLapped">Lapped</label>
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="filterIncludeRetired" checked>
+            <label for="filterIncludeRetired">Retired</label>
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="filterRainfall">
+            <label for="filterRainfall">Rainfall</label>
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="filterSafetyCar">
+            <label for="filterSafetyCar">Safety Car</label>
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="filterPitLaps">
+            <label for="filterPitLaps">Pit Laps</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-and-drivers">
+      <div class="chart-wrapper">
+        <div class="chart-controls" id="chartControls" style="display: none;">
+          <button id="fuelAdjustToggle" class="toggle-button">Fuel Adjusted</button>
+          <button id="tyreLifeAdjustToggle" class="toggle-button">Tyre Life Adjusted</button>
+        </div>
+        <div id="chartContainer" style="width: 100%; height: 500px; display: none;"></div>
+        <div id="coefficientsContainer" style="display: none; padding: 12px 16px; background: rgba(0, 224, 255, 0.03); border-radius: 8px; border: 1px solid var(--border-color); margin-top: 8px;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">Linear Fit Coefficients (y = mx)</div>
+          <div id="coefficientsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;"></div>
+        </div>
+      </div>
+      <div class="drivers-panel" id="driversPanel" style="display: none;">
+        <div class="drivers-title">Drivers</div>
+        <div id="driversList"></div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Papa Parse from CDN -->
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- ECharts for charts -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    const circuitSelect = document.getElementById("circuitSelect");
+    const eventSelect = document.getElementById("eventSelect");
+    const statusMessage = document.getElementById("statusMessage");
+    const chartContainer = document.getElementById("chartContainer");
+    const chartControls = document.getElementById("chartControls");
+    const coefficientsContainer = document.getElementById("coefficientsContainer");
+    const coefficientsGrid = document.getElementById("coefficientsGrid");
+    const driversPanel = document.getElementById("driversPanel");
+    const driversList = document.getElementById("driversList");
+    const fuelAdjustToggle = document.getElementById("fuelAdjustToggle");
+    const tyreLifeAdjustToggle = document.getElementById("tyreLifeAdjustToggle");
+
+    let allRows = [];
+    let eventsByKey = new Map(); // key -> {year, round_no, meeting_name, circuit_name}
+    let tyreChoices = new Map(); // key (year||round_no) -> {hard, medium, soft}
+    let chart = null; // ECharts instance
+    let selectedDrivers = new Set(); // Selected drivers for filtering
+    let currentGroups = []; // Store current groups for filtering
+    let driverColors = new Map(); // Driver colors for current event
+    let currentEventInfo = null; // Store current year, round, session type
+
+    init();
+
+    // Handle window resize for chart
+    window.addEventListener('resize', () => {
+      if (chart) {
+        chart.resize();
+      }
+    });
+
+    function init() {
+      // Load driver info first
+      DriverInfo.load(() => {
+        // Then load tyre_choices.csv
+        loadTyreChoices();
+      });
+    }
+
+    function loadTyreChoices() {
+      Papa.parse(DataCache.getCSVUrl("tyre_choices.csv"), {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        complete: function (results) {
+          if (results.data) {
+            results.data.forEach(row => {
+              const year = String(row.year || "").trim();
+              const round = String(row.round_no || "").trim();
+              if (year && round) {
+                const key = `${year}||${round}`;
+                tyreChoices.set(key, {
+                  hard: String(row.hard || "").trim(),
+                  medium: String(row.medium || "").trim(),
+                  soft: String(row.soft || "").trim()
+                });
+              }
+            });
+          }
+          // Now load all_df.csv
+          loadMainCSV();
+        },
+        error: function (err) {
+          console.error("Error loading tyre_choices.csv:", err);
+          loadMainCSV();
+        }
+      });
+    }
+
+    function loadMainCSV() {
+      ParsedDataCache.loadCSV("all_df.csv", {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        complete: function (results) {
+          if (results.errors && results.errors.length) {
+            console.warn("Papa Parse errors:", results.errors);
+          }
+
+          allRows = (results.data || []).filter(row =>
+            row.year !== undefined &&
+            row.round_no !== undefined &&
+            row.meeting_name !== undefined &&
+            row.circuit_name !== undefined &&
+            String(row.year || "").trim() !== "2018"
+          );
+
+          if (!allRows.length) {
+            statusMessage.textContent = "No usable rows found";
+            return;
+          }
+
+          buildCircuitDropdown(allRows);
+          indexEvents(allRows);
+          setupFilterListeners();
+          statusMessage.textContent = `${allRows.length} laps loaded`;
+
+          // Set default circuit
+          circuitSelect.value = "Las Vegas";
+          onCircuitChange();
+        },
+        error: function (err) {
+          console.error("Papa Parse error:", err);
+          statusMessage.textContent = "Error loading CSV";
+        }
+      });
+
+      circuitSelect.addEventListener("change", onCircuitChange);
+      eventSelect.addEventListener("change", () => {
+        // Clear selected drivers when changing event
+        selectedDrivers.clear();
+        onEventSelectionChange();
+      });
+    }
+
+    function buildCircuitDropdown(rows) {
+      const circuits = new Set();
+
+      rows.forEach(r => {
+        const name = (r.circuit_name || "").trim();
+        if (name) circuits.add(name);
+      });
+
+      const sortedCircuits = Array.from(circuits).sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" })
+      );
+
+      sortedCircuits.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        circuitSelect.appendChild(opt);
+      });
+    }
+
+    function indexEvents(rows) {
+      eventsByKey.clear();
+
+      rows.forEach(r => {
+        const year = String(r.year || "").trim();
+        const round = String(r.round_no || "").trim();
+        const meeting = String(r.meeting_name || "").trim();
+        const circuit = String(r.circuit_name || "").trim();
+        if (!year || !round || !meeting || !circuit) return;
+
+        const key = makeEventKey(year, round, meeting, circuit);
+        if (!eventsByKey.has(key)) {
+          eventsByKey.set(key, {
+            year,
+            round_no: round,
+            meeting_name: meeting,
+            circuit_name: circuit
+          });
+        }
+      });
+    }
+
+    function makeEventKey(year, round, meeting, circuit) {
+      return `${year}||${round}||${meeting}||${circuit}`;
+    }
+
+    function setupFilterListeners() {
+      document.getElementById("filterMinLap").addEventListener("input", onEventSelectionChange);
+      document.getElementById("filterEndLaps").addEventListener("input", onEventSelectionChange);
+      document.getElementById("filterMinDist").addEventListener("input", onEventSelectionChange);
+      document.getElementById("filterRainfall").addEventListener("change", onEventSelectionChange);
+      document.getElementById("filterSafetyCar").addEventListener("change", onEventSelectionChange);
+      document.getElementById("filterPitLaps").addEventListener("change", onEventSelectionChange);
+      document.getElementById('filterIncludeLapped').addEventListener('change', onEventSelectionChange);
+      document.getElementById('filterIncludeRetired').addEventListener('change', onEventSelectionChange);
+      document.getElementById('degHard').addEventListener('input', onEventSelectionChange);
+      document.getElementById('degMedium').addEventListener('input', onEventSelectionChange);
+      document.getElementById('degSoft').addEventListener('input', onEventSelectionChange);
+      document.getElementById('fuelEffect').addEventListener('input', onEventSelectionChange);
+
+      // Toggle buttons for adjustments
+      fuelAdjustToggle.addEventListener('click', function() {
+        this.classList.toggle('active');
+        renderLapTimeChart(currentGroups);
+      });
+
+      tyreLifeAdjustToggle.addEventListener('click', function() {
+        this.classList.toggle('active');
+        renderLapTimeChart(currentGroups);
+      });
+    }
+
+    function applyFilters(rows) {
+      const lapsToDiscard = parseInt(document.getElementById("filterMinLap").value) || 0;
+      const minLap = lapsToDiscard + 1;
+      const endLaps = parseInt(document.getElementById("filterEndLaps").value) || 0;
+      const minDist = parseFloat(document.getElementById("filterMinDist").value) || 0;
+      const includeRainfall = document.getElementById("filterRainfall").checked;
+      const includeSafetyCar = document.getElementById("filterSafetyCar").checked;
+      const includePitLaps = document.getElementById("filterPitLaps").checked;
+      const includeLapped = document.getElementById('filterIncludeLapped').checked;
+      const includeRetired = document.getElementById('filterIncludeRetired').checked;
+
+      return rows.filter(r => {
+        // Session type filter - only 'R' (Race)
+        const sessionType = String(r.session_type || "").trim();
+        if (sessionType !== 'R') return false;
+
+        // Min lap number
+        const lapNum = parseInt(r.lap_LapNumber);
+        if (isNaN(lapNum) || lapNum < minLap) return false;
+
+        // Max lap number (sched_laps - endLaps)
+        const schedLaps = parseInt(r.sched_laps);
+        if (!isNaN(schedLaps)) {
+          const maxLap = schedLaps - endLaps;
+          if (lapNum > maxLap) return false;
+        }
+
+        // Finish status filters
+        const status = String(r.finish_status ?? "").trim();
+        const plusLapsMatch = status.match(/^\+(\d+)\sLaps$/);
+        const lapsBehind = plusLapsMatch ? Number(plusLapsMatch[1]) : 0;
+        if (lapsBehind > 1) return false; // Always exclude "+2 Laps", "+3 Laps", etc.
+
+        const isLapped = status === "Lapped" || status === "+1 Lap";
+        if (!includeLapped && isLapped) return false;
+
+        const isFinished = status === "Finished" || isLapped;
+        const isRetired = !isFinished;
+        if (!includeRetired && isRetired) return false;
+
+        // Rainfall filter
+        if (!includeRainfall) {
+          const rainfall = String(r.weather_Rainfall || "").trim().toLowerCase();
+          if (rainfall === "true" || rainfall === "1") return false;
+        }
+
+        // Safety car filter
+        if (!includeSafetyCar) {
+          const trackStatus = String(r.lap_TrackStatus || "").trim();
+          if (trackStatus.includes("4") || trackStatus.includes("5") ||
+              trackStatus.includes("6") || trackStatus.includes("7")) {
+            return false;
+          }
+        }
+
+        // Pit laps filter
+        if (!includePitLaps) {
+          const pitIn = String(r.lap_PitInTime || "").trim();
+          const pitOut = String(r.lap_PitOutTime || "").trim();
+          if ((pitIn && pitIn.toLowerCase() !== "na" && pitIn !== "") ||
+              (pitOut && pitOut.toLowerCase() !== "na" && pitOut !== "")) {
+            return false;
+          }
+        }
+
+        // Min distance filter
+        const dist = parseFloat(r.min_dist);
+        if (!isNaN(dist) && dist < minDist) return false;
+
+        return true;
+      });
+    }
+
+    function onCircuitChange() {
+      const selectedCircuit = circuitSelect.value;
+
+      // Clear event dropdown
+      eventSelect.innerHTML = '<option value="">—</option>';
+
+      // Clear chart and drivers
+      chartContainer.style.display = 'none';
+      chartControls.style.display = 'none';
+      coefficientsContainer.style.display = 'none';
+      driversPanel.style.display = 'none';
+      selectedDrivers.clear();
+
+      if (!selectedCircuit) {
+        return;
+      }
+
+      const events = [];
+      eventsByKey.forEach((val, key) => {
+        if (val.circuit_name === selectedCircuit) {
+          const label = `${val.year} - ${val.round_no}. ${val.meeting_name}`;
+          events.push({
+            key,
+            label,
+            year: val.year,
+            round_no: val.round_no
+          });
+        }
+      });
+
+      events.sort((a, b) => {
+        const ya = parseInt(a.year, 10) || 0;
+        const yb = parseInt(b.year, 10) || 0;
+        if (ya !== yb) return ya - yb;
+        const ra = parseInt(a.round_no, 10) || 0;
+        const rb = parseInt(b.round_no, 10) || 0;
+        return ra - rb;
+      });
+
+      if (!events.length) {
+        return;
+      }
+
+      // Populate event dropdown
+      events.forEach((ev, index) => {
+        const tyreKey = `${ev.year}||${ev.round_no}`;
+        const tyres = tyreChoices.get(tyreKey);
+        let tyreInfo = "";
+        if (tyres && tyres.hard && tyres.medium && tyres.soft) {
+          tyreInfo = ` (${tyres.hard}-${tyres.medium}-${tyres.soft})`;
+        }
+
+        const option = document.createElement("option");
+        option.value = ev.key;
+        option.textContent = ev.label + tyreInfo;
+        eventSelect.appendChild(option);
+      });
+
+      // Select the last event by default
+      if (events.length > 0) {
+        eventSelect.value = events[events.length - 1].key;
+        onEventSelectionChange();
+      }
+    }
+
+    function onEventSelectionChange() {
+      const selectedEventKey = eventSelect.value;
+
+      if (!selectedEventKey) {
+        chartContainer.style.display = 'none';
+        chartControls.style.display = 'none';
+        coefficientsContainer.style.display = 'none';
+        driversPanel.style.display = 'none';
+        return;
+      }
+
+      const selectedEvent = eventsByKey.get(selectedEventKey);
+      if (!selectedEvent) {
+        chartContainer.style.display = 'none';
+        chartControls.style.display = 'none';
+        coefficientsContainer.style.display = 'none';
+        driversPanel.style.display = 'none';
+        return;
+      }
+
+      const matchingRows = allRows.filter(r => {
+        const rYear = String(r.year || "").trim();
+        const rRound = String(r.round_no || "").trim();
+        const rMeeting = String(r.meeting_name || "").trim();
+        const rCircuit = String(r.circuit_name || "").trim();
+
+        return (
+          rYear === selectedEvent.year &&
+          rRound === selectedEvent.round_no &&
+          rMeeting === selectedEvent.meeting_name &&
+          rCircuit === selectedEvent.circuit_name
+        );
+      });
+
+      const filteredRows = applyFilters(matchingRows);
+
+      // Store current event info for driver colors
+      currentEventInfo = {
+        year: selectedEvent.year,
+        round: selectedEvent.round_no,
+        sessionType: 'R' // Race
+      };
+
+      // Get driver colors for this event
+      driverColors = DriverInfo.getDriverColors(
+        currentEventInfo.year,
+        currentEventInfo.round,
+        currentEventInfo.sessionType
+      );
+
+      processData(filteredRows);
+    }
+
+    function getF1TireColor(compound) {
+      const compoundLower = String(compound || "").trim().toLowerCase();
+
+      // F1 tire colors
+      const colorMap = {
+        'soft': '#FF0000',      // Red
+        'medium': '#FFF200',    // Yellow
+        'hard': '#FFFFFF',      // White
+        'intermediate': '#00FF00', // Green
+        'wet': '#0000FF'        // Blue
+      };
+
+      return colorMap[compoundLower] || '#999999'; // Default gray for unknown
+    }
+
+    function renderLapTimeChart(driverData) {
+      if (driverData.size === 0) {
+        chartContainer.style.display = 'none';
+        chartControls.style.display = 'none';
+        coefficientsContainer.style.display = 'none';
+        if (chart) {
+          chart.dispose();
+          chart = null;
+        }
+        return;
+      }
+
+      // Show chart container and controls
+      chartContainer.style.display = 'block';
+      chartControls.style.display = 'flex';
+      coefficientsContainer.style.display = 'none'; // Hide coefficients for now
+
+      // Initialize chart if needed
+      if (!chart) {
+        chart = echarts.init(chartContainer);
+      }
+
+      // Get adjustment settings
+      const fuelAdjusted = fuelAdjustToggle.classList.contains('active');
+      const tyreLifeAdjusted = tyreLifeAdjustToggle.classList.contains('active');
+      const fuelEffect = parseFloat(document.getElementById('fuelEffect').value) || 0;
+      const degHard = parseFloat(document.getElementById('degHard').value) || 0;
+      const degMedium = parseFloat(document.getElementById('degMedium').value) || 0;
+      const degSoft = parseFloat(document.getElementById('degSoft').value) || 0;
+
+      const degradationMap = {
+        'HARD': degHard,
+        'MEDIUM': degMedium,
+        'SOFT': degSoft
+      };
+
+      // Create series - one per stint for selected drivers
+      const series = [];
+
+      driverData.forEach((stints, driver) => {
+        // Only plot drivers that are checked
+        if (!selectedDrivers.has(driver)) {
+          return;
+        }
+
+        // Convert stints to array and sort by stint number
+        const stintArray = Array.from(stints.entries()).sort((a, b) => {
+          return parseInt(a[0]) - parseInt(b[0]);
+        });
+
+        const lastStintIndex = stintArray.length - 1;
+
+        stintArray.forEach(([stintNumber, stintData], stintIndex) => {
+          const isLastStint = stintIndex === lastStintIndex;
+
+          // Sort laps by lap number
+          const sortedLaps = stintData.laps.slice().sort((a, b) => a.lapNumber - b.lapNumber);
+
+          const data = sortedLaps.map(lap => {
+            let adjustedLapTime = lap.lapTime;
+
+            // Apply fuel adjustment if enabled
+            if (fuelAdjusted && !isNaN(lap.schedLaps)) {
+              adjustedLapTime -= (lap.schedLaps - lap.lapNumber) * fuelEffect;
+            }
+
+            // Apply tyre life adjustment if enabled
+            if (tyreLifeAdjusted && !isNaN(lap.tyreLife)) {
+              const tyreDeg = degradationMap[lap.compound.toUpperCase()] || 0;
+              adjustedLapTime -= lap.tyreLife * tyreDeg;
+            }
+
+            return {
+              value: [lap.lapNumber, adjustedLapTime],
+              driver: driver,
+              compound: lap.compound,
+              stint: stintNumber,
+              originalLapTime: lap.lapTime
+            };
+          });
+
+          const compound = stintData.compound;
+          const compoundColor = getF1TireColor(compound);
+          const driverColor = driverColors.get(driver) || '#888888';
+
+          // Create a series for this stint
+          series.push({
+            name: `${driver} - Stint ${stintNumber}`,
+            type: 'line',
+            data: data,
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: { width: 2, color: compoundColor },
+            itemStyle: {
+              color: driverColor,  // Use driver color for markers
+              borderColor: driverColor,
+              borderWidth: 2
+            },
+            endLabel: {
+              show: isLastStint,
+              formatter: driver,
+              position: 'right',
+              offset: [6, 0],
+              color: driverColor,
+              fontSize: 11
+            },
+            animation: false
+          });
+        });
+      });
+
+      // If no drivers selected, clear the chart
+      if (series.length === 0) {
+        chart.clear();
+        return;
+      }
+
+      chart.setOption({
+        backgroundColor: 'transparent',
+        grid: { left: 60, right: 100, top: 20, bottom: 60 },
+        legend: {
+          show: false  // Hide legend, using endLabel instead
+        },
+        tooltip: {
+          show: true,
+          trigger: 'item',
+          confine: true,
+          borderColor: '#2a2f3a',
+          backgroundColor: 'rgba(26,29,36,0.96)',
+          textStyle: { color: '#e8e8e8' },
+          extraCssText: 'padding:10px 12px;border-radius:10px',
+          formatter: (p) => {
+            const data = p.data;
+            const lapNumber = data.value[0];
+            const lapTime = data.value[1];
+            return `
+              <strong>${data.driver}</strong><br/>
+              Lap: ${lapNumber}<br/>
+              Time: ${lapTime.toFixed(3)}s<br/>
+              Compound: ${data.compound}<br/>
+              Stint: ${data.stint}
+            `;
+          }
+        },
+        xAxis: {
+          type: 'value',
+          name: 'Lap Number',
+          nameLocation: 'middle',
+          nameGap: 30,
+          nameTextStyle: { color: '#00e0ff', fontSize: 12, fontWeight: 600 },
+          axisLine: { lineStyle: { color: '#9ca3af' } },
+          axisLabel: { color: '#9ca3af' },
+          splitLine: { lineStyle: { color: 'rgba(148, 163, 253, 0.1)' } },
+          scale: true
+        },
+        yAxis: {
+          type: 'value',
+          name: 'Lap Time (s)',
+          nameLocation: 'middle',
+          nameGap: 45,
+          nameTextStyle: { color: '#00e0ff', fontSize: 12, fontWeight: 600 },
+          axisLine: { lineStyle: { color: '#9ca3af' } },
+          axisLabel: { color: '#9ca3af' },
+          splitLine: { lineStyle: { color: 'rgba(148, 163, 253, 0.1)' } },
+          scale: true  // Auto-adjust y-axis limits
+        },
+        series: series
+      }, true);
+
+      // Resize chart
+      chart.resize();
+    }
+
+    function processData(rows) {
+      if (!rows.length) {
+        chartContainer.style.display = 'none';
+        chartControls.style.display = 'none';
+        coefficientsContainer.style.display = 'none';
+        driversPanel.style.display = 'none';
+        if (chart) {
+          chart.dispose();
+          chart = null;
+        }
+        return;
+      }
+
+      // Group by driver and stint, tracking finishing info
+      const driverData = new Map();
+
+      rows.forEach(r => {
+        const driver = String(r.lap_Driver || "").trim();
+        const lapNumber = parseInt(r.lap_LapNumber);
+        const lapTime = parseFloat(r.lap_LapTime);
+        const compound = String(r.lap_Compound || "").trim();
+        const stint = String(r.lap_Stint || "").trim();
+        const position = parseInt(r.lap_Position);
+        const tyreLife = parseInt(r.lap_TyreLife);
+        const schedLaps = parseInt(r.sched_laps);
+
+        if (!driver || isNaN(lapNumber) || isNaN(lapTime) || !stint) {
+          return; // Skip invalid rows
+        }
+
+        if (!driverData.has(driver)) {
+          driverData.set(driver, {
+            driver: driver,
+            stints: new Map(),
+            maxLapNum: 0,
+            lastPosition: null
+          });
+        }
+
+        const data = driverData.get(driver);
+        const driverStints = data.stints;
+
+        if (!driverStints.has(stint)) {
+          driverStints.set(stint, {
+            compound: compound,
+            laps: []
+          });
+        }
+
+        driverStints.get(stint).laps.push({
+          lapNumber: lapNumber,
+          lapTime: lapTime,
+          compound: compound,
+          tyreLife: tyreLife,
+          schedLaps: schedLaps
+        });
+
+        // Track max lap number and position on that lap
+        if (lapNumber > data.maxLapNum) {
+          data.maxLapNum = lapNumber;
+          data.lastPosition = position;
+        }
+      });
+
+      // Sort drivers by finishing position
+      // - First by number of laps completed (descending - more laps = better)
+      // - Then by position on their last lap (ascending - lower position number = better)
+      const sortedDrivers = Array.from(driverData.values()).sort((a, b) => {
+        // Compare number of laps completed
+        if (a.maxLapNum !== b.maxLapNum) {
+          return b.maxLapNum - a.maxLapNum; // More laps = finished higher
+        }
+
+        // Same number of laps - use position on last lap
+        const posA = isNaN(a.lastPosition) ? 999 : a.lastPosition;
+        const posB = isNaN(b.lastPosition) ? 999 : b.lastPosition;
+        return posA - posB; // Lower position number = better
+      });
+
+      // Store current data (convert back to Map for rendering)
+      const sortedDriverData = new Map();
+      sortedDrivers.forEach(d => {
+        sortedDriverData.set(d.driver, d.stints);
+      });
+      currentGroups = sortedDriverData;
+
+      // Build driver list (in finishing order)
+      const drivers = sortedDrivers.map(d => d.driver);
+
+      // Auto-select P1 driver if no drivers are currently selected
+      if (selectedDrivers.size === 0 && drivers.length > 0) {
+        selectedDrivers.add(drivers[0]); // drivers[0] is P1 (winner)
+      }
+
+      buildDriversList(drivers);
+
+      // Render lap time chart
+      renderLapTimeChart(sortedDriverData);
+    }
+
+    function buildDriversList(drivers) {
+      driversList.innerHTML = '';
+
+      if (drivers.length === 0) {
+        driversPanel.style.display = 'none';
+        return;
+      }
+
+      driversPanel.style.display = 'block';
+
+      drivers.forEach(driver => {
+        const wrapper = document.createElement('label');
+        wrapper.className = 'driver-item';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = driver;
+        checkbox.checked = selectedDrivers.has(driver);
+
+        // Set checkbox color to driver color
+        const driverColor = driverColors.get(driver) || 'var(--accent-color)';
+        checkbox.style.accentColor = driverColor;
+
+        checkbox.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            selectedDrivers.add(driver);
+          } else {
+            selectedDrivers.delete(driver);
+          }
+
+          // Re-render chart with filtered data
+          renderLapTimeChart(currentGroups);
+        });
+
+        const label = document.createElement('label');
+        label.textContent = driver;
+        label.style.cursor = 'pointer';
+        label.style.color = driverColor;
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(label);
+        driversList.appendChild(wrapper);
+      });
+    }
+  </script>
+</body>
+</html>

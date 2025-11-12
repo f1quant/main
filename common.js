@@ -242,8 +242,10 @@ function createTopNav() {
   const links = [
     { href: 'strategy.html', text: 'Strategy', page: 'strategy' },
     { href: 'race_trace.html', text: 'Race Trace', page: 'race_trace' },
+    { href: 'lap_time.html', text: 'Lap Time', page: 'lap_time' },
     { href: 'tyre_deg.html', text: 'Tyre Deg', page: 'tyre_deg' },
     { href: 'fuel_effect.html', text: 'Fuel Effect', page: 'fuel_effect' },
+    { href: 'tyre_comp.html', text: 'Tyre Comparison', page: 'tyre_comp' },
     { href: 'calculator.html', text: 'Calculator', page: 'calculator' },
   ];
 
