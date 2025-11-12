@@ -1404,20 +1404,8 @@
         }
       });
 
-      // Sort drivers by finishing position
-      // - First by number of laps completed (descending - more laps = better)
-      // - Then by position on their last lap (ascending - lower position number = better)
-      const sortedDrivers = Array.from(driverData.values()).sort((a, b) => {
-        // Compare number of laps completed
-        if (a.maxLapNum !== b.maxLapNum) {
-          return b.maxLapNum - a.maxLapNum; // More laps = finished higher
-        }
-
-        // Same number of laps - use position on last lap
-        const posA = isNaN(a.lastPosition) ? 999 : a.lastPosition;
-        const posB = isNaN(b.lastPosition) ? 999 : b.lastPosition;
-        return posA - posB; // Lower position number = better
-      });
+      // Sort drivers by finishing position using shared utility
+      const sortedDrivers = sortDriversByFinishingOrder(Array.from(driverData.values()));
 
       // Store current data (convert back to Map for rendering)
       const sortedDriverData = new Map();

@@ -688,8 +688,29 @@ const DriverInfo = {
   }
 };
 
+// Utility function to sort drivers by finishing order
+// Takes an array of driver objects with maxLapNum and lastPosition properties
+// Returns a sorted array (does not modify the original)
+function sortDriversByFinishingOrder(drivers) {
+  // Create a copy to avoid mutating the original array
+  const driversCopy = Array.isArray(drivers) ? [...drivers] : Array.from(drivers);
+
+  return driversCopy.sort((a, b) => {
+    // Compare number of laps completed
+    if (a.maxLapNum !== b.maxLapNum) {
+      return b.maxLapNum - a.maxLapNum; // More laps = finished higher
+    }
+
+    // Same number of laps - use position on last lap
+    const posA = isNaN(a.lastPosition) ? 999 : a.lastPosition;
+    const posB = isNaN(b.lastPosition) ? 999 : b.lastPosition;
+    return posA - posB; // Lower position number = better
+  });
+}
+
 // Export for use in other scripts
 window.DataCache = DataCache;
 window.ParsedDataCache = ParsedDataCache;
 window.UIHelpers = UIHelpers;
 window.DriverInfo = DriverInfo;
+window.sortDriversByFinishingOrder = sortDriversByFinishingOrder;

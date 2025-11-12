@@ -344,7 +344,7 @@
     function buildDriverList() {
       driverList.innerHTML = '';
 
-      // Sort drivers by finishing position
+      // Sort drivers by finishing position using shared utility
       const drivers = Object.keys(driverLines);
 
       // Calculate finishing position for each driver
@@ -361,27 +361,20 @@
         };
       });
 
-      // Sort by finishing position:
-      // 1. More laps completed = better (descending)
-      // 2. If same laps, use lap_Position (lower is better)
-      driverFinishInfo.sort((a, b) => {
-        if (a.maxLapNum !== b.maxLapNum) {
-          return b.maxLapNum - a.maxLapNum; // More laps = finished higher
-        }
-        return a.lastPosition - b.lastPosition; // Lower position number = better
-      });
+      // Sort by finishing position using shared utility
+      const sortedDriverFinishInfo = sortDriversByFinishingOrder(driverFinishInfo);
 
       // Auto-select top 5 drivers if this is a new session (selectedDrivers is empty)
       const isNewSession = selectedDrivers.size === 0;
       if (isNewSession) {
         selectedDrivers.clear();
-        driverFinishInfo.slice(0, 5).forEach(({ driver }) => {
+        sortedDriverFinishInfo.slice(0, 5).forEach(({ driver }) => {
           selectedDrivers.add(driver);
         });
       }
 
       // Build the list in finishing order
-      driverFinishInfo.forEach(({ driver }) => {
+      sortedDriverFinishInfo.forEach(({ driver }) => {
         const div = document.createElement('div');
         div.className = 'driver';
 
