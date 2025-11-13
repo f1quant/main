@@ -24,6 +24,7 @@
       gap: 0;
       margin-bottom: 16px;
       border-bottom: 2px solid var(--border-color);
+      align-items: center;
     }
 
     .tab-button {
@@ -47,6 +48,19 @@
     .tab-button.active {
       color: var(--primary-color);
       border-bottom-color: var(--primary-color);
+    }
+
+    .tab-navigation .status-message {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--muted-color);
+      padding: 0 12px;
+    }
+
+    .tab-navigation #reloadDataBtn {
+      margin-bottom: -2px;
+      padding: 8px 16px;
+      font-size: 12px;
     }
 
     /* Session Selector */
@@ -74,12 +88,6 @@
 
     #sessionSel {
       min-width: 120px;
-    }
-
-    .status-message {
-      margin-left: auto;
-      font-size: 12px;
-      color: var(--muted-color);
     }
 
     /* Content Panels */
@@ -348,6 +356,8 @@
       <button class="tab-button" data-tab="lap-time">Lap Time</button>
       <button class="tab-button" data-tab="tyre-deg">Tyre Degradation</button>
       <button class="tab-button" data-tab="fuel-effect">Fuel Effect</button>
+      <span class="status-message" id="statusMessage">Loading...</span>
+      <button id="reloadDataBtn" type="button" title="Reload data from server">Reload Data</button>
     </div>
 
     <!-- Session Selector (shared across all tabs) -->
@@ -364,7 +374,6 @@
       <select id="sessionSel" title="Session type" disabled>
         <option value=""></option>
       </select>
-      <span class="status-message" id="statusMessage">Loading...</span>
     </div>
 
     <!-- Strategy Panel -->
@@ -441,6 +450,7 @@
     const gpSel = document.getElementById("gpSel");
     const sessionSel = document.getElementById("sessionSel");
     const statusMessage = document.getElementById("statusMessage");
+    const reloadDataBtn = document.getElementById("reloadDataBtn");
 
     let allRows = [];
     let sessionsByKey = new Map();
@@ -537,6 +547,12 @@
 
     function init() {
       initTabNavigation();
+
+      // Set up reload data button
+      reloadDataBtn.addEventListener('click', () => {
+        DataCache.reloadData();
+      });
+
       DriverInfo.load(loadMainCSV);
     }
 
