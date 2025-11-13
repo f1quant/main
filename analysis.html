@@ -4358,9 +4358,11 @@
           textStyle: { color: '#e8e8e8' },
           formatter: (p) => {
             if (p.data.label) {
+              const stintNum = p.data.stintKey ? p.data.stintKey.split('||')[5] : 'N/A';
               return `
                 <strong>${p.seriesName}</strong><br/>
                 ${p.data.label}<br/>
+                Stint: ${stintNum}<br/>
                 Pace: ${p.data.value[0].toFixed(3)}s<br/>
                 Deg: ${p.data.value[1].toFixed(4)}s/lap
               `;
@@ -4481,7 +4483,8 @@
           return {
             value: [tyreLife, lapTime],
             driver: driver,
-            compound: compound
+            compound: compound,
+            stintKey: key
           };
         }).filter(p => !isNaN(p.value[0]) && !isNaN(p.value[1]));
 
@@ -4528,8 +4531,10 @@
           textStyle: { color: '#e8e8e8' },
           formatter: (p) => {
             const data = p.data;
+            const stintNum = data.stintKey ? data.stintKey.split('||')[5] : 'N/A';
             return `
               <strong>${data.driver}</strong><br/>
+              Stint: ${stintNum}<br/>
               Tyre Life: ${data.value[0]} laps<br/>
               Lap Time: ${data.value[1].toFixed(3)}s<br/>
               Compound: ${data.compound}
