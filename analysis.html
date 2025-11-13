@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>F1 Race Analysis</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    /* Page-specific styles */
+    .page-content {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 8px 16px 16px;
+    }
+
+    .container {
+      max-width: 1400px;
+      width: 100%;
+    }
+
+    /* Tab Navigation */
+    .tab-navigation {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .tab-button {
+      padding: 12px 24px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--muted-color);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: -2px;
+    }
+
+    .tab-button:hover {
+      color: var(--text-color);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tab-button.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+    }
+
+    /* Session Selector */
+    .session-selector {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .small {
+      color: var(--muted-color);
+      font-size: 12px;
+    }
+
+    select {
+      min-width: 160px;
+      width: auto;
+    }
+
+    #sessionSel {
+      min-width: 120px;
+    }
+
+    .status-message {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--muted-color);
+    }
+
+    /* Content Panels */
+    .content-panel {
+      display: none;
+    }
+
+    .content-panel.active {
+      display: block;
+    }
+
+    /* ========================================================================
+       STRATEGY PANEL STYLES
+       ======================================================================== */
+
+    #strategy-panel {
+      display: flex;
+      justify-content: center;
+    }
+
+    .strategy-container {
+      max-width: 900px;
+      width: 100%;
+      margin-top: 20px;
+      padding: 20px;
+      background: rgba(0, 224, 255, 0.03);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      display: none;
+    }
+
+    .strategy-container.show {
+      display: block;
+    }
+
+    .driver-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .driver-label {
+      width: 80px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-color);
+      text-align: right;
+      padding-right: 12px;
+      flex-shrink: 0;
+    }
+
+    .strategy-bar {
+      flex: 1;
+      height: 24px;
+      display: flex;
+      position: relative;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .stint-segment {
+      height: 100%;
+      position: relative;
+      border-right: 3px solid #000;
+      box-shadow: 2px 0 0 rgba(0, 0, 0, 0.8);
+    }
+
+    .stint-segment:last-child {
+      border-right: none;
+      box-shadow: none;
+    }
+
+    .missing-laps {
+      height: 100%;
+      background: repeating-linear-gradient(
+        45deg,
+        #333,
+        #333 4px,
+        #222 4px,
+        #222 8px
+      );
+      opacity: 0.5;
+    }
+
+    .lap-axis {
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    .lap-axis.top {
+      margin-bottom: 8px;
+    }
+
+    .lap-axis.bottom {
+      margin-top: 16px;
+    }
+
+    .lap-axis-spacer {
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    .lap-axis-track {
+      flex: 1;
+      height: 30px;
+      position: relative;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .lap-axis.bottom .lap-axis-track {
+      border-top: 1px solid var(--border-color);
+      border-bottom: none;
+    }
+
+    .lap-axis.top .lap-axis-track {
+      border-top: none;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .lap-tick {
+      position: absolute;
+      width: 1px;
+      background: var(--muted-color);
+    }
+
+    .lap-axis.bottom .lap-tick {
+      top: 0;
+      height: 8px;
+    }
+
+    .lap-axis.top .lap-tick {
+      bottom: 0;
+      height: 8px;
+    }
+
+    .lap-label {
+      position: absolute;
+      font-size: 10px;
+      color: var(--muted-color);
+      transform: translateX(-50%);
+    }
+
+    .lap-axis.bottom .lap-label {
+      top: 10px;
+    }
+
+    .lap-axis.top .lap-label {
+      bottom: 10px;
+    }
+
+    .tooltip {
+      position: absolute;
+      background: rgba(26, 29, 36, 0.96);
+      border: 1px solid var(--accent-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--text-color);
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .tooltip.show {
+      display: block;
+    }
+
+    /* Hide the common.js navigation since we have our own tabs */
+    nav {
+      display: none !important;
+    }
+
+    /* ========================================================================
+       RACE TRACE PANEL STYLES
+       ======================================================================== */
+
+    .race-trace-controls {
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .race-trace-controls input[type="number"] {
+      width: 90px;
+    }
+
+    .race-trace-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 600px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .race-trace-sidebar {
+      background: rgba(255, 255, 255, 0.02);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .race-trace-sidebar .section {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .race-trace-sidebar .buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    #raceTraceDriverList {
+      padding: 10px;
+      overflow: auto;
+    }
+
+    .race-trace-driver {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 2px;
+      border-radius: 6px;
+    }
+
+    .race-trace-driver:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .race-trace-driver label {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #raceTraceChart {
+      width: 100%;
+      height: 100%;
+      min-height: 600px;
+    }
+
+    .race-trace-debug-info {
+      padding: 20px;
+      color: var(--text-color);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-content">
+  <div class="container">
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button class="tab-button active" data-tab="strategy">Strategy</button>
+      <button class="tab-button" data-tab="race-trace">Race Trace</button>
+      <button class="tab-button" data-tab="lap-time">Lap Time</button>
+      <button class="tab-button" data-tab="tyre-deg">Tyre Degradation</button>
+      <button class="tab-button" data-tab="fuel-effect">Fuel Effect</button>
+    </div>
+
+    <!-- Session Selector (shared across all tabs) -->
+    <div class="session-selector">
+      <label class="small" for="seasonSel">Season</label>
+      <select id="seasonSel" title="Season">
+        <option value=""></option>
+      </select>
+      <label class="small" for="gpSel">GP</label>
+      <select id="gpSel" title="Grand Prix" disabled>
+        <option value=""></option>
+      </select>
+      <label class="small" for="sessionSel">Session</label>
+      <select id="sessionSel" title="Session type" disabled>
+        <option value=""></option>
+      </select>
+      <span class="status-message" id="statusMessage">Loading...</span>
+    </div>
+
+    <!-- Strategy Panel -->
+    <div id="strategy-panel" class="content-panel active">
+      <div id="strategyContainer" class="strategy-container">
+        <div class="lap-axis top">
+          <div class="lap-axis-spacer"></div>
+          <div class="lap-axis-track" id="lapAxisTop"></div>
+        </div>
+        <div id="strategyChart"></div>
+        <div class="lap-axis bottom">
+          <div class="lap-axis-spacer"></div>
+          <div class="lap-axis-track" id="lapAxisBottom"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Race Trace Panel -->
+    <div id="race-trace-panel" class="content-panel">
+      <div class="race-trace-controls">
+        <button id="raceTraceBtnAll" type="button">Select all</button>
+        <button id="raceTraceBtnNone" type="button">Clear all</button>
+        <label class="small" for="raceTraceLapMin">Lap min</label>
+        <input id="raceTraceLapMin" type="number" min="1" step="1" value="1" title="Min lap" />
+        <label class="small" for="raceTraceLapMax">Lap max</label>
+        <input id="raceTraceLapMax" type="number" min="1" step="1" value="1" title="Max lap" />
+      </div>
+
+      <div class="race-trace-layout">
+        <aside class="race-trace-sidebar">
+          <div id="raceTraceDriverList" aria-label="Driver list"></div>
+        </aside>
+        <main id="raceTraceChart">
+          <div class="race-trace-debug-info" id="raceTraceDebugInfo">
+            Waiting for data...
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Lap Time Panel -->
+    <div id="lap-time-panel" class="content-panel">
+      <h2>Lap Time Panel</h2>
+      <p>Lap time content will go here...</p>
+    </div>
+
+    <!-- Tyre Degradation Panel -->
+    <div id="tyre-deg-panel" class="content-panel">
+      <h2>Tyre Degradation Panel</h2>
+      <p>Tyre degradation content will go here...</p>
+    </div>
+
+    <!-- Fuel Effect Panel -->
+    <div id="fuel-effect-panel" class="content-panel">
+      <h2>Fuel Effect Panel</h2>
+      <p>Fuel effect content will go here...</p>
+    </div>
+
+  </div>
+  </div>
+
+  <div id="tooltip" class="tooltip"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ============================================================================
+    // SHARED STATE AND ELEMENTS
+    // ============================================================================
+
+    const seasonSel = document.getElementById("seasonSel");
+    const gpSel = document.getElementById("gpSel");
+    const sessionSel = document.getElementById("sessionSel");
+    const statusMessage = document.getElementById("statusMessage");
+
+    let allRows = [];
+    let sessionsByKey = new Map();
+    let currentSessionData = null; // Stores filtered data for current session
+    let currentActiveTab = 'strategy';
+
+    // ============================================================================
+    // TAB SWITCHING
+    // ============================================================================
+
+    function initTabNavigation() {
+      const tabButtons = document.querySelectorAll('.tab-button');
+
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const tabName = button.dataset.tab;
+          switchTab(tabName);
+        });
+      });
+    }
+
+    function switchTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+      });
+
+      // Update panels
+      document.querySelectorAll('.content-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+      document.getElementById(`${tabName}-panel`).classList.add('active');
+
+      // Hide strategy container when switching away from strategy
+      if (tabName !== 'strategy') {
+        strategyContainer.classList.remove('show');
+      }
+
+      currentActiveTab = tabName;
+
+      // Initialize panel if data is available
+      if (currentSessionData) {
+        initializePanel(tabName, currentSessionData);
+      }
+    }
+
+    function initializePanel(panelName, sessionData) {
+      if (!sessionData || sessionData.length === 0) return;
+
+      console.log(`Initializing ${panelName} panel with ${sessionData.length} rows`);
+
+      // Get current session info
+      const year = seasonSel.value;
+      const [round, meeting] = gpSel.value.split('||');
+      const sessionType = sessionSel.value;
+
+      switch(panelName) {
+        case 'strategy':
+          renderStrategyChart(sessionData, year, round, sessionType);
+          break;
+        case 'race-trace':
+          raceTraceCurrentSessionRows = sessionData;
+          raceTraceYear = year;
+          raceTraceRound = round;
+          raceTraceSessionType = sessionType;
+          raceTraceDriverColors = DriverInfo.getDriverColors(year, round, sessionType);
+          const lapNumbers = sessionData.map(r => parseInt(r.lap_LapNumber)).filter(n => !isNaN(n));
+          const minLapNum = Math.min(...lapNumbers);
+          const maxLapNum = Math.max(...lapNumbers);
+          raceTraceLapMin.value = minLapNum;
+          raceTraceLapMax.value = maxLapNum;
+          raceTraceLapMin.min = minLapNum;
+          raceTraceLapMax.max = maxLapNum;
+          raceTraceSelectedDrivers.clear();
+          calculateRaceTraceGaps(sessionData);
+          buildRaceTraceDriverList();
+          renderRaceTraceChart();
+          break;
+        case 'lap-time':
+          // Initialize lap time panel
+          break;
+        case 'tyre-deg':
+          // Initialize tyre deg panel
+          break;
+        case 'fuel-effect':
+          // Initialize fuel effect panel
+          break;
+      }
+    }
+
+    // ============================================================================
+    // SHARED DATA LOADING
+    // ============================================================================
+
+    function init() {
+      initTabNavigation();
+      DriverInfo.load(loadMainCSV);
+    }
+
+    function loadMainCSV() {
+      ParsedDataCache.loadCSV("all_df.csv", {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        complete: function (results) {
+          if (results.errors && results.errors.length) {
+            console.warn("Papa Parse errors:", results.errors);
+          }
+
+          allRows = (results.data || []).filter(row =>
+            row.year !== undefined &&
+            row.round_no !== undefined &&
+            row.meeting_name !== undefined &&
+            row.session_type !== undefined &&
+            String(row.year || "").trim() !== "2018"
+          );
+
+          if (!allRows.length) {
+            statusMessage.textContent = "No usable rows found";
+            return;
+          }
+
+          indexSessions(allRows);
+          buildSeasonDropdown();
+          statusMessage.textContent = `${allRows.length} laps loaded`;
+        },
+        error: function (err) {
+          console.error("Papa Parse error:", err);
+          statusMessage.textContent = "Error loading CSV";
+        }
+      });
+
+      seasonSel.addEventListener("change", onSeasonChange);
+      gpSel.addEventListener("change", onGPChange);
+      sessionSel.addEventListener("change", onSessionChange);
+    }
+
+    function indexSessions(rows) {
+      sessionsByKey.clear();
+
+      rows.forEach(r => {
+        const year = String(r.year || "").trim();
+        const round = String(r.round_no || "").trim();
+        const meeting = String(r.meeting_name || "").trim();
+        const sessionType = String(r.session_type || "").trim();
+        const circuit = String(r.circuit_name || "").trim();
+        if (!year || !round || !meeting || !sessionType || !circuit) return;
+
+        const key = `${year}||${round}||${meeting}||${sessionType}`;
+        if (!sessionsByKey.has(key)) {
+          sessionsByKey.set(key, {
+            year,
+            round_no: round,
+            meeting_name: meeting,
+            session_type: sessionType,
+            circuit_name: circuit
+          });
+        }
+      });
+    }
+
+    function buildSeasonDropdown() {
+      UIHelpers.populateSeasons(seasonSel, sessionsByKey, {
+        onChange: onSeasonChange
+      });
+    }
+
+    function onSeasonChange() {
+      const selectedSeason = seasonSel.value;
+      sessionSel.innerHTML = '';
+      sessionSel.disabled = true;
+
+      currentSessionData = null;
+
+      UIHelpers.populateGPs(gpSel, sessionsByKey, selectedSeason, {
+        onChange: onGPChange
+      });
+    }
+
+    function onGPChange() {
+      const selectedSeason = seasonSel.value;
+      const selectedGP = gpSel.value;
+
+      currentSessionData = null;
+
+      UIHelpers.populateSessions(sessionSel, sessionsByKey, selectedSeason, selectedGP, {
+        onChange: onSessionChange
+      });
+    }
+
+    function onSessionChange() {
+      const selectedSeason = seasonSel.value;
+      const selectedGP = gpSel.value;
+      const selectedSession = sessionSel.value;
+
+      if (!selectedSeason || !selectedGP || !selectedSession) {
+        currentSessionData = null;
+        return;
+      }
+
+      const [round, meeting] = selectedGP.split('||');
+
+      // Filter data for this session (shared across all tabs)
+      currentSessionData = allRows.filter(r => {
+        return String(r.year || "").trim() === selectedSeason &&
+               String(r.round_no || "").trim() === round &&
+               String(r.meeting_name || "").trim() === meeting &&
+               String(r.session_type || "").trim() === selectedSession;
+      });
+
+      // Initialize the currently active panel with new data
+      if (currentSessionData.length > 0) {
+        initializePanel(currentActiveTab, currentSessionData);
+      }
+    }
+
+    // ============================================================================
+    // PANEL-SPECIFIC CODE SECTIONS
+    // ============================================================================
+
+    // Strategy Panel
+    const strategyChart = document.getElementById('strategyChart');
+    const strategyContainer = document.getElementById('strategyContainer');
+    const lapAxisTop = document.getElementById('lapAxisTop');
+    const lapAxisBottom = document.getElementById('lapAxisBottom');
+    const tooltip = document.getElementById('tooltip');
+
+    function getF1TireColor(compound) {
+      const compoundLower = String(compound || "").trim().toLowerCase();
+      const colorMap = {
+        'soft': '#FF0000',
+        'medium': '#FFF200',
+        'hard': '#FFFFFF',
+        'intermediate': '#00FF00',
+        'wet': '#0000FF'
+      };
+      return colorMap[compoundLower] || '#999999';
+    }
+
+    function updateTooltipPosition(e) {
+      const x = e.clientX;
+      const y = e.clientY;
+      tooltip.style.left = `${x + 15}px`;
+      tooltip.style.top = `${y + 15}px`;
+    }
+
+    function renderStrategyChart(rows, year, round, sessionType) {
+      // Get driver colors for this specific session
+      const driverColors = DriverInfo.getDriverColors(year, round, sessionType);
+
+      // Group by driver
+      const driverData = new Map();
+
+      rows.forEach(r => {
+        const driver = String(r.lap_Driver || "").trim();
+        const lapNum = parseInt(r.lap_LapNumber);
+        const stint = parseInt(r.lap_Stint);
+        const compound = String(r.lap_Compound || "").trim();
+        const gridPos = parseInt(r.grid_position);
+        const tyreLife = parseInt(r.lap_TyreLife);
+        const position = parseInt(r.lap_Position);
+
+        if (!driver || isNaN(lapNum)) return;
+
+        if (!driverData.has(driver)) {
+          driverData.set(driver, {
+            driver: driver,
+            gridPosition: gridPos,
+            laps: new Map(),
+            stints: new Map(),
+            maxLapNum: 0,
+            lastPosition: null
+          });
+        }
+
+        const data = driverData.get(driver);
+        data.laps.set(lapNum, { compound, stint, tyreLife, position });
+
+        // Track max lap number and position on that lap
+        if (lapNum > data.maxLapNum) {
+          data.maxLapNum = lapNum;
+          data.lastPosition = position;
+        }
+
+        if (!data.stints.has(stint)) {
+          data.stints.set(stint, {
+            compound: compound,
+            startLap: lapNum,
+            endLap: lapNum,
+            startTyreLife: tyreLife
+          });
+        } else {
+          const stintData = data.stints.get(stint);
+          if (lapNum < stintData.startLap) {
+            stintData.startLap = lapNum;
+            stintData.startTyreLife = tyreLife;
+          }
+          if (lapNum > stintData.endLap) {
+            stintData.endLap = lapNum;
+          }
+        }
+      });
+
+      // Get max lap number (scheduled laps)
+      const schedLaps = parseInt(rows[0]?.sched_laps || 0);
+      const maxLap = schedLaps > 0 ? schedLaps : Math.max(...Array.from(driverData.values()).flatMap(d => Array.from(d.laps.keys())));
+
+      // Sort drivers by finishing position using shared utility
+      const sortedDrivers = sortDriversByFinishingOrder(Array.from(driverData.values()));
+
+      // Clear chart
+      strategyChart.innerHTML = '';
+
+      // Render driver rows
+      sortedDrivers.forEach(data => {
+        const row = document.createElement('div');
+        row.className = 'driver-row';
+
+        const label = document.createElement('div');
+        label.className = 'driver-label';
+        label.textContent = data.driver;
+
+        // Apply driver color if available
+        const driverColor = driverColors.get(data.driver);
+        if (driverColor) {
+          label.style.color = driverColor;
+        }
+
+        const bar = document.createElement('div');
+        bar.className = 'strategy-bar';
+
+        // Build stint segments
+        const sortedStints = Array.from(data.stints.values()).sort((a, b) => a.startLap - b.startLap);
+
+        sortedStints.forEach((stint, idx) => {
+          const segment = document.createElement('div');
+          segment.className = 'stint-segment';
+          const stintLaps = stint.endLap - stint.startLap + 1;
+          const widthPercent = (stintLaps / maxLap) * 100;
+          segment.style.width = `${widthPercent}%`;
+          segment.style.backgroundColor = getF1TireColor(stint.compound);
+
+          // Add tooltip
+          segment.addEventListener('mouseenter', (e) => {
+            const tyreAgeText = !isNaN(stint.startTyreLife) ? `<br/>Tyre age at start: ${stint.startTyreLife} laps` : '';
+            tooltip.innerHTML = `
+              <strong>${data.driver}</strong><br/>
+              Stint ${idx + 1}: ${stint.compound}<br/>
+              Laps ${stint.startLap}-${stint.endLap} (${stintLaps} laps)${tyreAgeText}
+            `;
+            tooltip.classList.add('show');
+            updateTooltipPosition(e);
+          });
+
+          segment.addEventListener('mousemove', updateTooltipPosition);
+
+          segment.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('show');
+          });
+
+          bar.appendChild(segment);
+        });
+
+        // Add missing laps if driver didn't complete all laps
+        const lastLap = Math.max(...Array.from(data.laps.keys()));
+        if (lastLap < maxLap) {
+          const missingLaps = maxLap - lastLap;
+          const widthPercent = (missingLaps / maxLap) * 100;
+          const missing = document.createElement('div');
+          missing.className = 'missing-laps';
+          missing.style.width = `${widthPercent}%`;
+          bar.appendChild(missing);
+        }
+
+        row.appendChild(label);
+        row.appendChild(bar);
+        strategyChart.appendChild(row);
+      });
+
+      // Render lap axes
+      renderLapAxis(maxLap);
+
+      // Show the container
+      strategyContainer.classList.add('show');
+    }
+
+    function renderLapAxis(maxLap) {
+      lapAxisTop.innerHTML = '';
+      lapAxisBottom.innerHTML = '';
+
+      // Create tick marks at intervals
+      const interval = maxLap > 50 ? 10 : 5;
+
+      for (let lap = 0; lap <= maxLap; lap += interval) {
+        // Top axis
+        const tickTop = document.createElement('div');
+        tickTop.className = 'lap-tick';
+        const position = (lap / maxLap) * 100;
+        tickTop.style.left = `${position}%`;
+        lapAxisTop.appendChild(tickTop);
+
+        const labelTop = document.createElement('div');
+        labelTop.className = 'lap-label';
+        labelTop.textContent = lap;
+        labelTop.style.left = `${position}%`;
+        lapAxisTop.appendChild(labelTop);
+
+        // Bottom axis
+        const tickBottom = document.createElement('div');
+        tickBottom.className = 'lap-tick';
+        tickBottom.style.left = `${position}%`;
+        lapAxisBottom.appendChild(tickBottom);
+
+        const labelBottom = document.createElement('div');
+        labelBottom.className = 'lap-label';
+        labelBottom.textContent = lap;
+        labelBottom.style.left = `${position}%`;
+        lapAxisBottom.appendChild(labelBottom);
+      }
+    }
+
+    // Race Trace Panel
+    const raceTraceLapMin = document.getElementById('raceTraceLapMin');
+    const raceTraceLapMax = document.getElementById('raceTraceLapMax');
+    const raceTraceDriverList = document.getElementById('raceTraceDriverList');
+    const raceTraceBtnAll = document.getElementById('raceTraceBtnAll');
+    const raceTraceBtnNone = document.getElementById('raceTraceBtnNone');
+    const raceTraceDebugInfo = document.getElementById('raceTraceDebugInfo');
+
+    let raceTraceDriverLines = {};
+    let raceTraceSelectedDrivers = new Set();
+    let raceTraceChart = null;
+    let raceTraceCurrentSessionRows = [];
+    let raceTraceDriverColors = new Map();
+    let raceTraceYear = '';
+    let raceTraceRound = '';
+    let raceTraceSessionType = '';
+
+    // Set up race trace event listeners
+    raceTraceBtnAll.addEventListener('click', () => {
+      raceTraceSelectedDrivers = new Set(Object.keys(raceTraceDriverLines));
+      updateRaceTraceDriverCheckboxes();
+      renderRaceTraceChart();
+    });
+
+    raceTraceBtnNone.addEventListener('click', () => {
+      raceTraceSelectedDrivers.clear();
+      updateRaceTraceDriverCheckboxes();
+      renderRaceTraceChart();
+    });
+
+    raceTraceLapMin.addEventListener('input', () => renderRaceTraceChart());
+    raceTraceLapMax.addEventListener('input', () => renderRaceTraceChart());
+
+    function getDriverInfo(code) {
+      // Get driver info for current session with proper parameters
+      if (!raceTraceYear || !raceTraceRound || !raceTraceSessionType) {
+        return { fullName: code, color: '#888888', teamName: '', headshotUrl: '' };
+      }
+
+      return DriverInfo.getDriverInfo(code, raceTraceYear, raceTraceRound, raceTraceSessionType);
+    }
+
+    function calculateRaceTraceGaps(rows) {
+      const lapData = new Map();
+
+      rows.forEach(r => {
+        const lapNum = parseInt(r.lap_LapNumber);
+        const driver = String(r.lap_Driver || "").trim();
+        const position = parseInt(r.lap_Position);
+        const lapTime = parseFloat(r.lap_Time);
+
+        if (isNaN(lapNum) || !driver || isNaN(lapTime) || isNaN(position)) return;
+
+        if (!lapData.has(lapNum)) {
+          lapData.set(lapNum, []);
+        }
+
+        lapData.get(lapNum).push({ driver, position, lapTime });
+      });
+
+      raceTraceDriverLines = {};
+
+      lapData.forEach((driversInLap, lapNum) => {
+        driversInLap.sort((a, b) => a.position - b.position);
+        const minTime = Math.min(...driversInLap.map(d => d.lapTime));
+
+        driversInLap.forEach(d => {
+          const gap = minTime - d.lapTime;
+
+          if (!raceTraceDriverLines[d.driver]) {
+            raceTraceDriverLines[d.driver] = {
+              laps: [],
+              gaps: [],
+              positions: []
+            };
+          }
+
+          raceTraceDriverLines[d.driver].laps.push(lapNum);
+          raceTraceDriverLines[d.driver].gaps.push(gap);
+          raceTraceDriverLines[d.driver].positions.push(d.position);
+        });
+      });
+    }
+
+    function buildRaceTraceDriverList() {
+      raceTraceDriverList.innerHTML = '';
+
+      const drivers = Object.keys(raceTraceDriverLines);
+      const driverFinishInfo = drivers.map(driver => {
+        const data = raceTraceDriverLines[driver];
+        const maxLapNum = Math.max(...data.laps);
+        const lastLapIndex = data.laps.indexOf(maxLapNum);
+        const lastPosition = data.positions[lastLapIndex];
+
+        return { driver, maxLapNum, lastPosition };
+      });
+
+      const sortedDriverFinishInfo = sortDriversByFinishingOrder(driverFinishInfo);
+
+      const isNewSession = raceTraceSelectedDrivers.size === 0;
+      if (isNewSession) {
+        raceTraceSelectedDrivers.clear();
+        sortedDriverFinishInfo.slice(0, 5).forEach(({ driver }) => {
+          raceTraceSelectedDrivers.add(driver);
+        });
+      }
+
+      sortedDriverFinishInfo.forEach(({ driver }) => {
+        const div = document.createElement('div');
+        div.className = 'race-trace-driver';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `race-trace-driver-${driver}`;
+        checkbox.checked = raceTraceSelectedDrivers.has(driver);
+
+        const info = getDriverInfo(driver);
+        checkbox.style.accentColor = info.color;
+
+        checkbox.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            raceTraceSelectedDrivers.add(driver);
+          } else {
+            raceTraceSelectedDrivers.delete(driver);
+          }
+          renderRaceTraceChart();
+        });
+
+        const label = document.createElement('label');
+        label.htmlFor = `race-trace-driver-${driver}`;
+
+        // Format: "Full Name (ABB)"
+        const displayName = info.fullName ? `${info.fullName} (${driver})` : driver;
+        label.textContent = displayName;
+        label.style.color = info.color;
+
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        raceTraceDriverList.appendChild(div);
+      });
+    }
+
+    function updateRaceTraceDriverCheckboxes() {
+      Object.keys(raceTraceDriverLines).forEach(driver => {
+        const checkbox = document.getElementById(`race-trace-driver-${driver}`);
+        if (checkbox) {
+          checkbox.checked = raceTraceSelectedDrivers.has(driver);
+        }
+      });
+    }
+
+    function detectRainfallLaps(minLap, maxLap) {
+      if (raceTraceCurrentSessionRows.length === 0) return [];
+
+      const lapRainfall = new Map();
+      raceTraceCurrentSessionRows.forEach(r => {
+        const lapNum = parseInt(r.lap_LapNumber);
+        if (isNaN(lapNum) || lapNum < minLap || lapNum > maxLap) return;
+
+        if (!lapRainfall.has(lapNum)) {
+          lapRainfall.set(lapNum, { total: 0, rainfall: 0 });
+        }
+
+        const lapData = lapRainfall.get(lapNum);
+        lapData.total++;
+
+        const rainfall = String(r.weather_Rainfall || "").trim().toLowerCase();
+        if (rainfall === 'true' || rainfall === '1') {
+          lapData.rainfall++;
+        }
+      });
+
+      const rainfallLaps = [];
+      lapRainfall.forEach((data, lapNum) => {
+        if (data.rainfall / data.total >= 0.5) {
+          rainfallLaps.push(lapNum);
+        }
+      });
+
+      if (rainfallLaps.length === 0) return [];
+
+      rainfallLaps.sort((a, b) => a - b);
+      const ranges = [];
+      let start = rainfallLaps[0];
+      let end = rainfallLaps[0];
+
+      for (let i = 1; i < rainfallLaps.length; i++) {
+        if (rainfallLaps[i] === end + 1) {
+          end = rainfallLaps[i];
+        } else {
+          ranges.push({ start, end });
+          start = rainfallLaps[i];
+          end = rainfallLaps[i];
+        }
+      }
+      ranges.push({ start, end });
+      return ranges;
+    }
+
+    function detectSafetyCarLaps(minLap, maxLap) {
+      if (raceTraceCurrentSessionRows.length === 0) return [];
+
+      const lapSafetyCar = new Map();
+      raceTraceCurrentSessionRows.forEach(r => {
+        const lapNum = parseInt(r.lap_LapNumber);
+        if (isNaN(lapNum) || lapNum < minLap || lapNum > maxLap) return;
+
+        if (!lapSafetyCar.has(lapNum)) {
+          lapSafetyCar.set(lapNum, { total: 0, safetyCar: 0 });
+        }
+
+        const lapData = lapSafetyCar.get(lapNum);
+        lapData.total++;
+
+        const trackStatus = String(r.lap_TrackStatus || "").trim();
+        if (trackStatus.includes('4') || trackStatus.includes('6') || trackStatus.includes('7')) {
+          if (!trackStatus.includes('5')) {
+            lapData.safetyCar++;
+          }
+        }
+      });
+
+      const safetyCarLaps = [];
+      lapSafetyCar.forEach((data, lapNum) => {
+        if (data.safetyCar / data.total >= 0.5) {
+          safetyCarLaps.push(lapNum);
+        }
+      });
+
+      if (safetyCarLaps.length === 0) return [];
+
+      safetyCarLaps.sort((a, b) => a - b);
+      const ranges = [];
+      let start = safetyCarLaps[0];
+      let end = safetyCarLaps[0];
+
+      for (let i = 1; i < safetyCarLaps.length; i++) {
+        if (safetyCarLaps[i] === end + 1) {
+          end = safetyCarLaps[i];
+        } else {
+          ranges.push({ start, end });
+          start = safetyCarLaps[i];
+          end = safetyCarLaps[i];
+        }
+      }
+      ranges.push({ start, end });
+      return ranges;
+    }
+
+    function detectRedFlagLaps(minLap, maxLap) {
+      if (raceTraceCurrentSessionRows.length === 0) return [];
+
+      const lapRedFlag = new Map();
+      raceTraceCurrentSessionRows.forEach(r => {
+        const lapNum = parseInt(r.lap_LapNumber);
+        if (isNaN(lapNum) || lapNum < minLap || lapNum > maxLap) return;
+
+        if (!lapRedFlag.has(lapNum)) {
+          lapRedFlag.set(lapNum, { total: 0, redFlag: 0 });
+        }
+
+        const lapData = lapRedFlag.get(lapNum);
+        lapData.total++;
+
+        const trackStatus = String(r.lap_TrackStatus || "").trim();
+        if (trackStatus.includes('5')) {
+          lapData.redFlag++;
+        }
+      });
+
+      const redFlagLaps = [];
+      lapRedFlag.forEach((data, lapNum) => {
+        if (data.redFlag / data.total >= 0.5) {
+          redFlagLaps.push(lapNum);
+        }
+      });
+
+      return redFlagLaps.sort((a, b) => a - b);
+    }
+
+    function renderRaceTraceChart() {
+      if (Object.keys(raceTraceDriverLines).length === 0) return;
+
+      const chartContainer = document.getElementById('raceTraceChart');
+      const debugDiv = document.getElementById('raceTraceDebugInfo');
+      if (debugDiv) debugDiv.remove();
+
+      if (!raceTraceChart) {
+        raceTraceChart = echarts.init(chartContainer);
+      }
+
+      const minLap = parseInt(raceTraceLapMin.value);
+      const maxLap = parseInt(raceTraceLapMax.value);
+
+      // Detect rainfall, safety car, and red flag laps
+      const rainfallRanges = detectRainfallLaps(minLap, maxLap);
+      const safetyCarRanges = detectSafetyCarLaps(minLap, maxLap);
+      const redFlagLaps = detectRedFlagLaps(minLap, maxLap);
+
+      // Calculate gaps by lap for scaling
+      const gapsByLap = new Map();
+      raceTraceSelectedDrivers.forEach(driver => {
+        const data = raceTraceDriverLines[driver];
+        if (!data) return;
+        for (let i = 0; i < data.laps.length; i++) {
+          const lap = data.laps[i];
+          if (lap >= minLap && lap <= maxLap) {
+            if (!gapsByLap.has(lap)) gapsByLap.set(lap, []);
+            gapsByLap.get(lap).push(data.gaps[i]);
+          }
+        }
+      });
+
+      const maxGapByLap = new Map();
+      gapsByLap.forEach((gaps, lap) => {
+        maxGapByLap.set(lap, Math.max(...gaps));
+      });
+
+      const series = [];
+      const lapCount = Math.max(...Object.values(raceTraceDriverLines).map(d => Math.max(...d.laps)));
+      const rightX = (maxLap === lapCount) ? (maxLap + 0.5) : (maxLap + 0.1);
+
+      raceTraceSelectedDrivers.forEach(driver => {
+        const data = raceTraceDriverLines[driver];
+        if (!data) return;
+
+        const points = [];
+        let lastGap = null;
+        for (let i = 0; i < data.laps.length; i++) {
+          const lap = data.laps[i];
+          if (lap >= minLap && lap <= maxLap) {
+            const rawGap = data.gaps[i];
+            const maxGap = maxGapByLap.get(lap) || 0;
+            const adjustedGap = rawGap - maxGap;
+            points.push([lap, adjustedGap]);
+            lastGap = adjustedGap;
+          }
+        }
+
+        if (points.length > 0) {
+          const info = getDriverInfo(driver);
+          const completedAllLaps = data.laps.some(lap => lap === maxLap);
+
+          if (completedAllLaps && lastGap !== null) {
+            points.push({
+              value: [rightX, lastGap],
+              tooltip: { show: false },
+              emphasis: { disabled: true }
+            });
+          }
+
+          series.push({
+            name: driver,
+            type: 'line',
+            data: points,
+            step: 'end',
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: 4,
+            lineStyle: { width: 2, color: info.color },
+            itemStyle: { color: info.color, borderWidth: 0 },
+            emphasis: { focus: 'series', blurScope: 'global', lineStyle: { width: 3.5 } },
+            blur: { lineStyle: { opacity: 0.15 } },
+            endLabel: {
+              show: completedAllLaps,
+              formatter: '{a}',
+              position: 'right',
+              offset: [6, 0],
+              color: info.color
+            },
+            animation: false
+          });
+        }
+      });
+
+      // Add rainfall shading
+      if (rainfallRanges.length > 0) {
+        const markAreaData = rainfallRanges.map(range => [
+          {
+            xAxis: range.start - 0.5,
+            name: range.start === range.end ? `Rainfall (Lap ${range.start})` : `Rainfall (Laps ${range.start}-${range.end})`
+          },
+          { xAxis: range.end + 0.5 }
+        ]);
+
+        series.push({
+          name: 'Rainfall',
+          type: 'line',
+          data: [],
+          markArea: {
+            silent: false,
+            itemStyle: { color: 'rgba(30, 144, 255, 0.1)' },
+            data: markAreaData,
+            label: { show: false },
+            tooltip: { formatter: (params) => params.name }
+          },
+          animation: false
+        });
+      }
+
+      // Add safety car shading
+      if (safetyCarRanges.length > 0) {
+        const markAreaData = safetyCarRanges.map(range => [
+          {
+            xAxis: range.start - 0.5,
+            name: range.start === range.end ? `Safety Car (Lap ${range.start})` : `Safety Car (Laps ${range.start}-${range.end})`
+          },
+          { xAxis: range.end + 0.5 }
+        ]);
+
+        series.push({
+          name: 'Safety Car',
+          type: 'line',
+          data: [],
+          markArea: {
+            silent: false,
+            itemStyle: { color: 'rgba(150, 150, 7, 0.15)' },
+            data: markAreaData,
+            label: { show: false },
+            tooltip: { formatter: (params) => params.name }
+          },
+          animation: false
+        });
+      }
+
+      // Add red flag lines
+      if (redFlagLaps.length > 0) {
+        const markLineData = redFlagLaps.map(lap => ({
+          xAxis: lap,
+          name: `Red Flag (Lap ${lap})`,
+          label: { show: false }
+        }));
+
+        series.push({
+          name: 'Red Flag',
+          type: 'line',
+          data: [],
+          markLine: {
+            silent: false,
+            symbol: 'none',
+            lineStyle: {
+              color: 'rgba(255, 0, 0, 0.5)',
+              width: 2,
+              type: 'dashed'
+            },
+            data: markLineData,
+            label: { show: false },
+            tooltip: { formatter: (params) => params.name }
+          },
+          animation: false
+        });
+      }
+
+      const option = {
+        backgroundColor: 'transparent',
+        grid: {
+          left: 60,
+          right: 120,
+          top: 40,
+          bottom: 60,
+          containLabel: false
+        },
+        xAxis: [
+          {
+            type: 'value',
+            name: 'Lap',
+            min: minLap,
+            max: rightX,
+            minInterval: 1,
+            nameLocation: 'middle',
+            nameGap: 35,
+            position: 'bottom',
+            axisLine: { lineStyle: { color: '#555' } },
+            axisLabel: {
+              color: '#aaa',
+              formatter: function(value) {
+                // Only show label if it's an integer
+                return Number.isInteger(value) ? value : '';
+              }
+            },
+            splitLine: {
+              show: true,
+              lineStyle: { color: '#333', type: 'solid', width: 1 }
+            }
+          },
+          {
+            type: 'value',
+            min: minLap,
+            max: rightX,
+            minInterval: 1,
+            position: 'top',
+            axisLine: { lineStyle: { color: '#555' } },
+            axisLabel: {
+              color: '#aaa',
+              formatter: function(value) {
+                // Only show label if it's an integer
+                return Number.isInteger(value) ? value : '';
+              }
+            },
+            splitLine: { show: false }
+          }
+        ],
+        yAxis: {
+          type: 'value',
+          name: 'Gap (s)',
+          nameLocation: 'middle',
+          nameGap: 45,
+          nameRotate: 90,
+          nameTextStyle: { color: '#aaa', fontSize: 12 },
+          minInterval: 1,
+          axisLine: { lineStyle: { color: '#555' } },
+          axisLabel: { color: '#aaa' },
+          splitLine: {
+            show: true,
+            lineStyle: { color: '#333', type: 'solid', width: 1 }
+          }
+        },
+        tooltip: {
+          show: true,
+          trigger: 'item',
+          confine: true,
+          appendToBody: true,
+          borderColor: '#2a2f3a',
+          backgroundColor: 'rgba(26,29,36,0.96)',
+          textStyle: { color: '#e8e8e8' },
+          extraCssText: 'padding:10px 12px;border-radius:10px',
+          formatter: (p) => {
+            const v = Array.isArray(p.value) ? p.value : p.data?.value || p.data;
+            const lap = Array.isArray(v) ? v[0] : v?.[0];
+            const gap = Array.isArray(v) ? v[1] : v?.[1];
+            const code = p.seriesName;
+            const info = getDriverInfo(code);
+
+            if (info && info.headshotUrl) {
+              const fullName = info.fullName || code;
+              const teamName = info.teamName || '';
+              const gapLine = (typeof lap === 'number' && typeof gap === 'number')
+                ? `<div style="margin-top:4px">Lap ${lap}: ${gap.toFixed(3)} s</div>`
+                : '';
+              return `
+                <div style="display:flex;align-items:center;gap:10px;min-width:220px;">
+                  <img src="${info.headshotUrl}" alt="${fullName}" width="50" height="50" style="border-radius:50%;object-fit:cover;border:1px solid #2a2f3a;flex:0 0 auto" />
+                  <div style="line-height:1.25">
+                    <div style="font-weight:600">${fullName} <span style="color:#8b8b8b">(${code})</span></div>
+                    ${teamName ? `<div style="color:#8b8b8b;font-size:12px">${teamName}</div>` : ''}
+                    ${gapLine}
+                  </div>
+                </div>
+              `;
+            }
+
+            if (typeof lap === 'number' && typeof gap === 'number') {
+              return `${p.marker}<b>${code}</b><br/>Lap ${lap}: ${gap.toFixed(3)} s`;
+            }
+            return `${p.marker}<b>${code}</b>`;
+          }
+        },
+        series: series
+      };
+
+      raceTraceChart.setOption(option, true); // true = notMerge, completely replace the option
+    }
+
+    // Lap Time Panel
+    // (Will be populated from lap_time.html)
+
+    // Tyre Degradation Panel
+    // (Will be populated from tyre_deg.html)
+
+    // Fuel Effect Panel
+    // (Will be populated from fuel_effect.html)
+
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+
+    init();
+  </script>
+</body>
+</html>
