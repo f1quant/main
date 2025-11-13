@@ -924,7 +924,7 @@
             </div>
             <div class="filter-item">
               <div class="filter-label">Fuel Effect (sec/lap)</div>
-              <input type="number" id="fuelEffect" value="0.03" min="0" step="0.01">
+              <input type="number" id="fuelEffect" value="0.025" min="0" step="0.001">
             </div>
           </div>
         </div>
@@ -934,15 +934,15 @@
           <div class="filters-grid">
             <div class="filter-item">
               <div class="filter-label">Laps to Discard at Start</div>
-              <input type="number" id="filterMinLap" value="2" min="0">
+              <input type="number" id="filterMinLap" value="1" min="0">
             </div>
             <div class="filter-item">
               <div class="filter-label">Laps to Discard at End</div>
-              <input type="number" id="filterEndLaps" value="0" min="0">
+              <input type="number" id="filterEndLaps" value="1" min="0">
             </div>
             <div class="filter-item">
               <div class="filter-label">Min Distance to Car Ahead</div>
-              <input type="number" id="filterMinDist" value="0" min="0" step="0.1">
+              <input type="number" id="filterMinDist" value="3" min="0" step="0.1">
             </div>
           </div>
         </div>
@@ -959,7 +959,7 @@
               <label for="filterIncludeRetired">Retired</label>
             </div>
             <div class="checkbox-group">
-              <input type="checkbox" id="filterRainfall" checked>
+              <input type="checkbox" id="filterRainfall">
               <label for="filterRainfall">Rainfall</label>
             </div>
             <div class="checkbox-group">
@@ -1205,23 +1205,7 @@
             lapTimeScheduledLaps = null;
           }
 
-          // Update adjustment inputs from circuit config if available
-          const circuitName = sessionData.length > 0 ? String(sessionData[0].circuit_name || "").trim() : "";
-          if (circuitName && circuitConfig[circuitName]) {
-            const config = circuitConfig[circuitName];
-            if (config["Hard Deg"] !== undefined) {
-              document.getElementById('degHard').value = config["Hard Deg"];
-            }
-            if (config["Medium Deg"] !== undefined) {
-              document.getElementById('degMedium').value = config["Medium Deg"];
-            }
-            if (config["Soft Deg"] !== undefined) {
-              document.getElementById('degSoft').value = config["Soft Deg"];
-            }
-            if (config["Fuel Effect"] !== undefined) {
-              document.getElementById('fuelEffect').value = config["Fuel Effect"];
-            }
-          }
+          // Circuit config is now applied once per session in onSessionChange()
 
           const filteredRows = applyLapTimeFilters(sessionData);
           processLapTimeData(filteredRows);
@@ -1252,15 +1236,7 @@
             tyreDegTyreChoicesDisplay.style.display = 'none';
           }
 
-          // Set fuel effect from circuit config if available
-          const tyreDegCircuitName = sessionData.length > 0 ? String(sessionData[0].circuit_name || "").trim() : "";
-          if (tyreDegCircuitName && circuitConfig[tyreDegCircuitName] && circuitConfig[tyreDegCircuitName]["Fuel Effect"] !== undefined) {
-            const fuelEffect = circuitConfig[tyreDegCircuitName]["Fuel Effect"];
-            const slider = document.getElementById('tyreDegFuelEffectSlider');
-            const value = document.getElementById('tyreDegFuelEffectValue');
-            slider.value = fuelEffect;
-            value.textContent = fuelEffect.toFixed(3);
-          }
+          // Circuit config is now applied once per session in onSessionChange()
 
           processTyreDegData(sessionData);
           break;
@@ -1399,6 +1375,31 @@
 
       // Clear selected drivers when a new session is selected
       selectedDrivers.clear();
+
+      // Apply circuit config once for the new session (before initializing any panels)
+      const circuitName = currentSessionData.length > 0 ? String(currentSessionData[0].circuit_name || "").trim() : "";
+      if (circuitName && circuitConfig[circuitName]) {
+        const config = circuitConfig[circuitName];
+
+        // Set lap time adjustments
+        if (config["Hard Deg"] !== undefined) {
+          document.getElementById('degHard').value = config["Hard Deg"];
+        }
+        if (config["Medium Deg"] !== undefined) {
+          document.getElementById('degMedium').value = config["Medium Deg"];
+        }
+        if (config["Soft Deg"] !== undefined) {
+          document.getElementById('degSoft').value = config["Soft Deg"];
+        }
+
+        // Set fuel effect for both tabs (synced)
+        if (config["Fuel Effect"] !== undefined) {
+          const fuelEffect = config["Fuel Effect"];
+          document.getElementById('fuelEffect').value = fuelEffect;
+          document.getElementById('tyreDegFuelEffectSlider').value = fuelEffect;
+          document.getElementById('tyreDegFuelEffectValue').textContent = parseFloat(fuelEffect).toFixed(3);
+        }
+      }
 
       // Initialize the currently active panel with new data
       if (currentSessionData.length > 0) {
@@ -2909,6 +2910,125 @@
     }
 
     setupTyreDegFilterListeners();
+
+    // Sync common inputs between lap time and tyre deg tabs
+    function syncSharedFilters() {
+      // Fuel Effect: sync values between lap time (number input) and tyre deg (range slider)
+      const fuelEffectInput = document.getElementById('fuelEffect');
+      const tyreDegFuelEffectSlider = document.getElementById('tyreDegFuelEffectSlider');
+      const tyreDegFuelEffectValue = document.getElementById('tyreDegFuelEffectValue');
+
+      fuelEffectInput.addEventListener('input', function() {
+        const value = parseFloat(this.value) || 0;
+        // Sync to tyre deg slider (doesn't trigger input event)
+        tyreDegFuelEffectSlider.value = value;
+        tyreDegFuelEffectValue.textContent = value.toFixed(3);
+      });
+
+      tyreDegFuelEffectSlider.addEventListener('input', function() {
+        const value = parseFloat(this.value) || 0;
+        // Sync to lap time input (doesn't trigger input event)
+        fuelEffectInput.value = value.toFixed(3);
+      });
+
+      // Laps to Discard at Start
+      const filterMinLap = document.getElementById('filterMinLap');
+      const tyreDegFilterMinLap = document.getElementById('tyreDegFilterMinLap');
+
+      filterMinLap.addEventListener('input', function() {
+        tyreDegFilterMinLap.value = this.value;
+      });
+
+      tyreDegFilterMinLap.addEventListener('input', function() {
+        filterMinLap.value = this.value;
+      });
+
+      // Laps to Discard at End
+      const filterEndLaps = document.getElementById('filterEndLaps');
+      const tyreDegFilterEndLaps = document.getElementById('tyreDegFilterEndLaps');
+
+      filterEndLaps.addEventListener('input', function() {
+        tyreDegFilterEndLaps.value = this.value;
+      });
+
+      tyreDegFilterEndLaps.addEventListener('input', function() {
+        filterEndLaps.value = this.value;
+      });
+
+      // Min Distance to Car Ahead
+      const filterMinDist = document.getElementById('filterMinDist');
+      const tyreDegFilterMinDist = document.getElementById('tyreDegFilterMinDist');
+
+      filterMinDist.addEventListener('input', function() {
+        tyreDegFilterMinDist.value = this.value;
+      });
+
+      tyreDegFilterMinDist.addEventListener('input', function() {
+        filterMinDist.value = this.value;
+      });
+
+      // Include Rainfall
+      const filterRainfall = document.getElementById('filterRainfall');
+      const tyreDegFilterRainfall = document.getElementById('tyreDegFilterRainfall');
+
+      filterRainfall.addEventListener('change', function() {
+        tyreDegFilterRainfall.checked = this.checked;
+      });
+
+      tyreDegFilterRainfall.addEventListener('change', function() {
+        filterRainfall.checked = this.checked;
+      });
+
+      // Include Safety Car
+      const filterSafetyCar = document.getElementById('filterSafetyCar');
+      const tyreDegFilterSafetyCar = document.getElementById('tyreDegFilterSafetyCar');
+
+      filterSafetyCar.addEventListener('change', function() {
+        tyreDegFilterSafetyCar.checked = this.checked;
+      });
+
+      tyreDegFilterSafetyCar.addEventListener('change', function() {
+        filterSafetyCar.checked = this.checked;
+      });
+
+      // Include Pit Laps
+      const filterPitLaps = document.getElementById('filterPitLaps');
+      const tyreDegFilterPitLaps = document.getElementById('tyreDegFilterPitLaps');
+
+      filterPitLaps.addEventListener('change', function() {
+        tyreDegFilterPitLaps.checked = this.checked;
+      });
+
+      tyreDegFilterPitLaps.addEventListener('change', function() {
+        filterPitLaps.checked = this.checked;
+      });
+
+      // Include Lapped
+      const filterIncludeLapped = document.getElementById('filterIncludeLapped');
+      const tyreDegFilterIncludeLapped = document.getElementById('tyreDegFilterIncludeLapped');
+
+      filterIncludeLapped.addEventListener('change', function() {
+        tyreDegFilterIncludeLapped.checked = this.checked;
+      });
+
+      tyreDegFilterIncludeLapped.addEventListener('change', function() {
+        filterIncludeLapped.checked = this.checked;
+      });
+
+      // Include Retired
+      const filterIncludeRetired = document.getElementById('filterIncludeRetired');
+      const tyreDegFilterIncludeRetired = document.getElementById('tyreDegFilterIncludeRetired');
+
+      filterIncludeRetired.addEventListener('change', function() {
+        tyreDegFilterIncludeRetired.checked = this.checked;
+      });
+
+      tyreDegFilterIncludeRetired.addEventListener('change', function() {
+        filterIncludeRetired.checked = this.checked;
+      });
+    }
+
+    syncSharedFilters();
 
     // Set up document-level click listener for closing dropdowns
     document.addEventListener('click', function(e) {
