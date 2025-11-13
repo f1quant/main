@@ -3074,7 +3074,7 @@
       }).filter(p => !isNaN(p.x) && !isNaN(p.y));
 
       if (pairs.length < 2) {
-        return { slope: '-', intercept: '-', correlation: 0, r2: 0 };
+        return { slope: '-', intercept: '-', correlation: 0, rmse: '-' };
       }
 
       // Simple linear regression calculation
@@ -3090,13 +3090,21 @@
 
       const correlation = (n * sumXY - sumX * sumY) /
         Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-      const r2 = correlation * correlation;
+
+      // Calculate RMSE (Root Mean Square Error)
+      let sumSquaredErrors = 0;
+      pairs.forEach(p => {
+        const predicted = slope * p.x + intercept;
+        const error = p.y - predicted;
+        sumSquaredErrors += error * error;
+      });
+      const rmse = Math.sqrt(sumSquaredErrors / n);
 
       return {
         slope: isFinite(slope) ? slope.toFixed(4) : '-',
         intercept: isFinite(intercept) ? intercept.toFixed(3) : '-',
         correlation: isFinite(correlation) ? correlation : 0,
-        r2: isFinite(r2) ? r2.toFixed(3) : '0.000'
+        rmse: isFinite(rmse) ? rmse.toFixed(4) : '-'
       };
     }
 
@@ -3293,7 +3301,7 @@
 
         // RMSE
         const tdRMSE = document.createElement('td');
-        tdRMSE.textContent = group.regressionStats.r2;
+        tdRMSE.textContent = group.regressionStats.rmse;
         tr.appendChild(tdRMSE);
 
         // Click row to toggle selection
