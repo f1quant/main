@@ -1721,8 +1721,6 @@
     let allRows = [];
     let sessionsByKey = new Map();
     let currentSessionData = null; // Stores filtered data for current session
-    let currentActiveTab = 'strategy';
-    let selectedDrivers = new Set(); // Shared driver selection across race trace and lap time panels
 
     // ============================================================================
     // GLOBAL STATE MANAGEMENT
@@ -1733,6 +1731,10 @@
      * This allows for future serialization and state persistence.
      */
     const appState = {
+      // Shared across tabs
+      currentActiveTab: 'strategy',
+      selectedDrivers: new Set(), // Shared driver selection across race trace and lap time panels
+
       // Shared filters (synced across lap time, tyre deg, and fuel effect tabs)
       filters: {
         minLap: 1,
@@ -1757,15 +1759,13 @@
       // Race Trace tab
       raceTrace: {
         lapMin: 1,
-        lapMax: 1,
-        selectedDrivers: [] // Array of driver names (data-dependent)
+        lapMax: 1
       },
 
       // Lap Time tab
       lapTime: {
         fuelAdjust: true,
-        tyreLifeAdjust: true,
-        selectedDrivers: [] // Array of driver names (data-dependent)
+        tyreLifeAdjust: true
       },
 
       // Tyre Deg tab
@@ -1774,13 +1774,13 @@
         fuelEffectSlider: 0.025,
         filterMinRows: 5,
         filterMinCorr: -1.0,
-        selectedStints: [] // Array of stint keys (data-dependent)
+        selectedStints: new Set() // Selected stint keys (data-dependent)
       },
 
       // Fuel Effect tab
       fuelEffect: {
         fuelEffectInput: 0.025,
-        selectedRows: [] // Array of row keys (data-dependent)
+        selectedRows: new Set() // Selected row keys (data-dependent)
       },
 
       // Calculator tab
@@ -1944,21 +1944,27 @@
       switch(panelName) {
         case 'race-trace':
         case 'lap-time':
-          // Restore driver selections (both use same selectedDrivers Set)
-          const savedDrivers = appState.raceTrace.selectedDrivers || [];
+          // Restore driver selections (both use same appState.selectedDrivers Set)
+          // appState.selectedDrivers is already a Set, but if restored from saved state it might be an array
+          const currentDriverSelection = appState.selectedDrivers;
+          const savedDriversArray = Array.isArray(currentDriverSelection) ? currentDriverSelection : Array.from(currentDriverSelection);
+
+          // Clear and rebuild selection with only valid drivers
+          appState.selectedDrivers.clear();
+
           const availableDrivers = panelName === 'race-trace'
             ? Object.keys(raceTraceDriverLines)
             : Array.from(lapTimeCurrentGroups.keys());
 
           // Only select drivers that exist in the current data
-          savedDrivers.forEach(driver => {
+          savedDriversArray.forEach(driver => {
             if (availableDrivers.includes(driver)) {
-              selectedDrivers.add(driver);
+              appState.selectedDrivers.add(driver);
             }
           });
 
           // If no drivers were restored, auto-select top 5
-          if (selectedDrivers.size === 0 && availableDrivers.length > 0) {
+          if (appState.selectedDrivers.size === 0 && availableDrivers.length > 0) {
             if (panelName === 'race-trace') {
               const driverFinishInfo = availableDrivers.map(driver => {
                 const data = raceTraceDriverLines[driver];
@@ -1969,37 +1975,49 @@
               });
               const sortedDrivers = sortDriversByFinishingOrder(driverFinishInfo);
               sortedDrivers.slice(0, 5).forEach(({ driver }) => {
-                selectedDrivers.add(driver);
+                appState.selectedDrivers.add(driver);
               });
             } else {
               const top5 = availableDrivers.slice(0, Math.min(5, availableDrivers.length));
-              top5.forEach(driver => selectedDrivers.add(driver));
+              top5.forEach(driver => appState.selectedDrivers.add(driver));
             }
           }
           break;
 
         case 'tyre-deg':
           // Restore stint selections
-          const savedStints = appState.tyreDeg.selectedStints || [];
+          // appState.tyreDeg.selectedStints is already a Set, but if restored from saved state it might be an array
+          const currentStintSelection = appState.tyreDeg.selectedStints;
+          const savedStintsArray = Array.isArray(currentStintSelection) ? currentStintSelection : Array.from(currentStintSelection);
+
+          // Clear and rebuild selection with only valid stints
+          appState.tyreDeg.selectedStints.clear();
+
           const availableStintKeys = Array.from(tyreDegFilteredGroups.keys());
 
           // Only select stints that exist in the current filtered data
-          savedStints.forEach(stintKey => {
+          savedStintsArray.forEach(stintKey => {
             if (availableStintKeys.includes(stintKey)) {
-              tyreDegSelectedStints.add(stintKey);
+              appState.tyreDeg.selectedStints.add(stintKey);
             }
           });
           break;
 
         case 'fuel-effect':
           // Restore row selections
-          const savedRows = appState.fuelEffect.selectedRows || [];
+          // appState.fuelEffect.selectedRows is already a Set, but if restored from saved state it might be an array
+          const currentRowSelection = appState.fuelEffect.selectedRows;
+          const savedRowsArray = Array.isArray(currentRowSelection) ? currentRowSelection : Array.from(currentRowSelection);
+
+          // Clear and rebuild selection with only valid rows
+          appState.fuelEffect.selectedRows.clear();
+
           const availableRowKeys = Array.from(fuelEffectFilteredGroups.keys());
 
           // Only select rows that exist in the current filtered data
-          savedRows.forEach(rowKey => {
+          savedRowsArray.forEach(rowKey => {
             if (availableRowKeys.includes(rowKey)) {
-              fuelEffectSelectedRows.add(rowKey);
+              appState.fuelEffect.selectedRows.add(rowKey);
             }
           });
           break;
@@ -2105,7 +2123,7 @@
         strategyContainer.classList.remove('show');
       }
 
-      currentActiveTab = tabName;
+      appState.currentActiveTab = tabName;
 
       // Initialize panel if data is available
       if (currentSessionData) {
@@ -2145,7 +2163,7 @@
 
           // Restore driver selections from state AFTER building the list
           // (so raceTraceDriverLines is populated)
-          if (selectedDrivers.size === 0) {
+          if (appState.selectedDrivers.size === 0) {
             restoreDataDependentSelections('race-trace');
           }
 
@@ -2176,7 +2194,7 @@
 
           // Restore driver selections from state AFTER processing data
           // (so lapTimeCurrentGroups is populated)
-          if (selectedDrivers.size === 0 && lapTimeCurrentGroups.size > 0) {
+          if (appState.selectedDrivers.size === 0 && lapTimeCurrentGroups.size > 0) {
             restoreDataDependentSelections('lap-time');
             // Re-render to show the selected drivers
             const drivers = Array.from(lapTimeCurrentGroups.keys());
@@ -2188,7 +2206,7 @@
         case 'tyre-deg':
           // Initialize tyre deg panel
           // Clear previous stints tracker for event change detection
-          tyreDegSelectedStints.clear();
+          appState.tyreDeg.selectedStints.clear();
           window.tyreDegPreviousFilteredStints = [];
 
           // Display tyre choices for the selected event
@@ -2210,15 +2228,15 @@
           const filteredFuelEffectRows = applyFuelEffectFilters(sessionData);
 
           // Clear selections before displaying table
-          fuelEffectSelectedRows.clear();
+          appState.fuelEffect.selectedRows.clear();
 
           // Build table with no selections
           displayFuelEffectGroupsTable(filteredFuelEffectRows);
 
           // Auto-select all rows if none are selected
-          if (fuelEffectSelectedRows.size === 0) {
+          if (appState.fuelEffect.selectedRows.size === 0) {
             fuelEffectFilteredGroups.forEach((group, key) => {
-              fuelEffectSelectedRows.add(key);
+              appState.fuelEffect.selectedRows.add(key);
             });
           }
 
@@ -2368,7 +2386,7 @@
       });
 
       // Clear selected drivers when a new session is selected
-      selectedDrivers.clear();
+      appState.selectedDrivers.clear();
 
       // Apply circuit config once for the new session (before initializing any panels)
       const circuitName = currentSessionData.length > 0 ? String(currentSessionData[0].circuit_name || "").trim() : "";
@@ -2412,7 +2430,7 @@
 
       // Initialize the currently active panel with new data
       if (currentSessionData.length > 0) {
-        initializePanel(currentActiveTab, currentSessionData);
+        initializePanel(appState.currentActiveTab, currentSessionData);
       }
     }
 
@@ -2779,16 +2797,13 @@
           cb.checked = shouldCheck;
           const driverId = cb.id.replace('race-trace-driver-', '');
           if (shouldCheck) {
-            selectedDrivers.add(driverId);
+            appState.selectedDrivers.add(driverId);
           } else {
-            selectedDrivers.delete(driverId);
+            appState.selectedDrivers.delete(driverId);
           }
         });
 
         // Save driver selections to state
-        const drivers = Array.from(selectedDrivers);
-        saveToState('raceTrace.selectedDrivers', drivers);
-        saveToState('lapTime.selectedDrivers', drivers);
         renderRaceTraceChart();
         // Also update lap time chart if it has data
         if (lapTimeCurrentGroups.size > 0) {
@@ -2806,21 +2821,18 @@
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = `race-trace-driver-${driver}`;
-        checkbox.checked = selectedDrivers.has(driver);
+        checkbox.checked = appState.selectedDrivers.has(driver);
 
         const info = getDriverInfo(driver);
         checkbox.style.accentColor = info.color;
 
         checkbox.addEventListener('change', (e) => {
           if (e.target.checked) {
-            selectedDrivers.add(driver);
+            appState.selectedDrivers.add(driver);
           } else {
-            selectedDrivers.delete(driver);
+            appState.selectedDrivers.delete(driver);
           }
           // Save driver selections to state (both race trace and lap time use same set)
-          const drivers = Array.from(selectedDrivers);
-          saveToState('raceTrace.selectedDrivers', drivers);
-          saveToState('lapTime.selectedDrivers', drivers);
           renderRaceTraceChart();
           // Also update lap time chart if it has data
           if (lapTimeCurrentGroups.size > 0) {
@@ -2853,7 +2865,7 @@
       Object.keys(raceTraceDriverLines).forEach(driver => {
         const checkbox = document.getElementById(`race-trace-driver-${driver}`);
         if (checkbox) {
-          checkbox.checked = selectedDrivers.has(driver);
+          checkbox.checked = appState.selectedDrivers.has(driver);
         }
       });
 
@@ -3027,7 +3039,7 @@
 
       // Calculate gaps by lap for scaling
       const gapsByLap = new Map();
-      selectedDrivers.forEach(driver => {
+      appState.selectedDrivers.forEach(driver => {
         const data = raceTraceDriverLines[driver];
         if (!data) return;
         for (let i = 0; i < data.laps.length; i++) {
@@ -3048,7 +3060,7 @@
       const lapCount = Math.max(...Object.values(raceTraceDriverLines).map(d => Math.max(...d.laps)));
       const rightX = (maxLap === lapCount) ? (maxLap + 0.5) : (maxLap + 0.1);
 
-      selectedDrivers.forEach(driver => {
+      appState.selectedDrivers.forEach(driver => {
         const data = raceTraceDriverLines[driver];
         if (!data) return;
 
@@ -3419,7 +3431,7 @@
 
     function copyLapTimeDataToClipboard() {
       // Get selected drivers in order
-      const selectedDriversList = Array.from(selectedDrivers);
+      const selectedDriversList = Array.from(appState.selectedDrivers);
       if (selectedDriversList.length === 0) {
         alert('No drivers selected');
         return;
@@ -3715,16 +3727,13 @@
         driverCheckboxes.forEach(cb => {
           cb.checked = shouldCheck;
           if (shouldCheck) {
-            selectedDrivers.add(cb.value);
+            appState.selectedDrivers.add(cb.value);
           } else {
-            selectedDrivers.delete(cb.value);
+            appState.selectedDrivers.delete(cb.value);
           }
         });
 
         // Save driver selections to state
-        const drivers = Array.from(selectedDrivers);
-        saveToState('raceTrace.selectedDrivers', drivers);
-        saveToState('lapTime.selectedDrivers', drivers);
         renderLapTimeChart();
         renderLapTimeSummaryTable();
         // Also update race trace chart if it has data
@@ -3742,21 +3751,18 @@
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.value = driver;
-        checkbox.checked = selectedDrivers.has(driver);
+        checkbox.checked = appState.selectedDrivers.has(driver);
 
         const info = getLapTimeDriverInfo(driver);
         checkbox.style.accentColor = info.color;
 
         checkbox.addEventListener('change', (e) => {
           if (e.target.checked) {
-            selectedDrivers.add(driver);
+            appState.selectedDrivers.add(driver);
           } else {
-            selectedDrivers.delete(driver);
+            appState.selectedDrivers.delete(driver);
           }
           // Save driver selections to state (both race trace and lap time use same set)
-          const drivers = Array.from(selectedDrivers);
-          saveToState('raceTrace.selectedDrivers', drivers);
-          saveToState('lapTime.selectedDrivers', drivers);
           renderLapTimeChart();
           renderLapTimeSummaryTable();
           // Also update race trace chart if it has data
@@ -3827,7 +3833,7 @@
       let seriesIdx = 0;
 
       lapTimeCurrentGroups.forEach((stints, driver) => {
-        if (!selectedDrivers.has(driver)) return;
+        if (!appState.selectedDrivers.has(driver)) return;
 
         const stintArray = Array.from(stints.entries()).sort((a, b) => {
           return parseInt(a[0]) - parseInt(b[0]);
@@ -4282,7 +4288,7 @@
         // Calculate average for selected drivers only
         const values = [];
         lapTimeDriverOrder.forEach(({ driver }) => {
-          if (!selectedDrivers.has(driver)) return;
+          if (!appState.selectedDrivers.has(driver)) return;
           const driverData = driverAverages.get(driver);
           if (driverData && driverData[compound] !== undefined) {
             values.push(driverData[compound]);
@@ -4295,7 +4301,7 @@
           // Calculate reference average for delta
           const refValues = [];
           lapTimeDriverOrder.forEach(({ driver }) => {
-            if (!selectedDrivers.has(driver)) return;
+            if (!appState.selectedDrivers.has(driver)) return;
             const driverData = driverAverages.get(driver);
             if (driverData && driverData[referenceCompound] !== undefined) {
               refValues.push(driverData[referenceCompound]);
@@ -4323,7 +4329,7 @@
       ['SOFT', 'MEDIUM', 'HARD'].forEach(compound => {
         const values = [];
         lapTimeDriverOrder.forEach(({ driver }) => {
-          if (!selectedDrivers.has(driver)) return;
+          if (!appState.selectedDrivers.has(driver)) return;
           const driverData = driverAverages.get(driver);
           if (driverData && driverData[compound] !== undefined) {
             values.push(driverData[compound]);
@@ -4348,16 +4354,13 @@
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'stint-checkbox';
-        checkbox.checked = selectedDrivers.has(driver);
+        checkbox.checked = appState.selectedDrivers.has(driver);
         checkbox.addEventListener('change', () => {
           if (checkbox.checked) {
-            selectedDrivers.add(driver);
+            appState.selectedDrivers.add(driver);
           } else {
-            selectedDrivers.delete(driver);
+            appState.selectedDrivers.delete(driver);
           }
-          const drivers = Array.from(selectedDrivers);
-          saveToState('raceTrace.selectedDrivers', drivers);
-          saveToState('lapTime.selectedDrivers', drivers);
 
           // Update the driver list checkboxes
           buildLapTimeDriversList(lapTimeDriverOrder.filter(d => lapTimeCurrentGroups.has(d.driver)).map(d => d.driver));
@@ -4385,7 +4388,7 @@
 
         // Compound cells
         const driverData = driverAverages.get(driver);
-        const isSelected = selectedDrivers.has(driver);
+        const isSelected = appState.selectedDrivers.has(driver);
 
         ['SOFT', 'MEDIUM', 'HARD'].forEach(compound => {
           const td = document.createElement('td');
@@ -4477,15 +4480,12 @@
 
           if (this.checked) {
             // Select all drivers in table
-            driversInTable.forEach(driver => selectedDrivers.add(driver));
+            driversInTable.forEach(driver => appState.selectedDrivers.add(driver));
           } else {
             // Deselect all drivers in table
-            driversInTable.forEach(driver => selectedDrivers.delete(driver));
+            driversInTable.forEach(driver => appState.selectedDrivers.delete(driver));
           }
 
-          const drivers = Array.from(selectedDrivers);
-          saveToState('raceTrace.selectedDrivers', drivers);
-          saveToState('lapTime.selectedDrivers', drivers);
 
           // Update the driver list checkboxes
           buildLapTimeDriversList(lapTimeDriverOrder.filter(d => lapTimeCurrentGroups.has(d.driver)).map(d => d.driver));
@@ -4503,7 +4503,7 @@
         const driversInTable = lapTimeDriverOrder
           .filter(({ driver }) => driverAverages.has(driver))
           .map(({ driver }) => driver);
-        const selectedInTableCount = driversInTable.filter(driver => selectedDrivers.has(driver)).length;
+        const selectedInTableCount = driversInTable.filter(driver => appState.selectedDrivers.has(driver)).length;
 
         selectAllCheckbox.checked = selectedInTableCount === driversInTable.length && driversInTable.length > 0;
         selectAllCheckbox.indeterminate = selectedInTableCount > 0 && selectedInTableCount < driversInTable.length;
@@ -4539,7 +4539,6 @@
 
     let tyreDegScatterChartInstance = null;
     let tyreDegLapTimeChartInstance = null;
-    let tyreDegSelectedStints = new Set();
     let tyreDegFilteredGroups = new Map();
     let tyreDegTyreChoices = new Map();
 
@@ -4649,7 +4648,6 @@
       checkboxId,
       groupsMap,
       selectedSet,
-      stateKey,
       onChange
     }) {
       const selectAllCheckbox = document.getElementById(checkboxId);
@@ -4665,7 +4663,7 @@
         } else {
           groupsMap.forEach((_, key) => selectedSet.delete(key));
         }
-        saveToState(stateKey, Array.from(selectedSet));
+        // selectedSet is already updated directly, no need to save
         onChange();
       });
 
@@ -5064,19 +5062,19 @@
       // Handle stint selection on event change
       if (isEventChange) {
         // Event changed - restore from state or select all
-        tyreDegSelectedStints.clear();
+        appState.tyreDeg.selectedStints.clear();
         restoreDataDependentSelections('tyre-deg');
 
         // If no stints were restored from state, select all stints
-        if (tyreDegSelectedStints.size === 0) {
+        if (appState.tyreDeg.selectedStints.size === 0) {
           tyreDegFilteredGroups.forEach((group, key) => {
-            tyreDegSelectedStints.add(key);
+            appState.tyreDeg.selectedStints.add(key);
           });
         }
       } else {
         // Filter changed - maintain selection only for stints that were in previous view
         const stintsToKeep = new Set();
-        tyreDegSelectedStints.forEach(key => {
+        appState.tyreDeg.selectedStints.forEach(key => {
           if (tyreDegFilteredGroups.has(key) && previousStints.has(key)) {
             stintsToKeep.add(key);
           }
@@ -5089,8 +5087,8 @@
           }
         });
 
-        tyreDegSelectedStints.clear();
-        stintsToKeep.forEach(key => tyreDegSelectedStints.add(key));
+        appState.tyreDeg.selectedStints.clear();
+        stintsToKeep.forEach(key => appState.tyreDeg.selectedStints.add(key));
       }
 
       // Store current stints for next comparison
@@ -5238,7 +5236,7 @@
 
       sortedGroups.forEach(([key, group]) => {
         const tr = document.createElement('tr');
-        if (tyreDegSelectedStints.has(key)) {
+        if (appState.tyreDeg.selectedStints.has(key)) {
           tr.classList.add('stint-selected');
         }
 
@@ -5247,16 +5245,15 @@
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'stint-checkbox';
-        checkbox.checked = tyreDegSelectedStints.has(key);
+        checkbox.checked = appState.tyreDeg.selectedStints.has(key);
         checkbox.addEventListener('change', () => {
           if (checkbox.checked) {
-            tyreDegSelectedStints.add(key);
+            appState.tyreDeg.selectedStints.add(key);
             tr.classList.add('stint-selected');
           } else {
-            tyreDegSelectedStints.delete(key);
+            appState.tyreDeg.selectedStints.delete(key);
             tr.classList.remove('stint-selected');
           }
-          saveToState('tyreDeg.selectedStints', Array.from(tyreDegSelectedStints));
           renderTyreDegScatterChart();
           renderTyreDegLapTimeChart();
         });
@@ -5363,8 +5360,7 @@
       attachSelectAllCheckbox({
         checkboxId: 'tyreDegSelectAllCheckbox',
         groupsMap: tyreDegFilteredGroups,
-        selectedSet: tyreDegSelectedStints,
-        stateKey: 'tyreDeg.selectedStints',
+        selectedSet: appState.tyreDeg.selectedStints,
         onChange: () => {
           renderTyreDegStintsTable();
           renderTyreDegScatterChart();
@@ -5403,14 +5399,13 @@
 
         if (matches) {
           if (select) {
-            tyreDegSelectedStints.add(key);
+            appState.tyreDeg.selectedStints.add(key);
           } else {
-            tyreDegSelectedStints.delete(key);
+            appState.tyreDeg.selectedStints.delete(key);
           }
         }
       });
 
-      saveToState('tyreDeg.selectedStints', Array.from(tyreDegSelectedStints));
 
       // Close the dropdown
       if (tyreDegDropdownState.dropdown) {
@@ -5430,7 +5425,7 @@
         tyreDegScatterChartInstance = echarts.init(tyreDegScatterChart);
       }
 
-      if (tyreDegSelectedStints.size === 0) {
+      if (appState.tyreDeg.selectedStints.size === 0) {
         tyreDegScatterChartInstance.clear();
         tyreDegEquationsSection.style.display = 'none';
         tyreDegAvgDegDisplay.style.display = 'none';
@@ -5444,7 +5439,7 @@
       const equations = new Map();
       const compoundDegValues = new Map(); // Track deg values for averaging
 
-      tyreDegSelectedStints.forEach(key => {
+      appState.tyreDeg.selectedStints.forEach(key => {
         const group = tyreDegFilteredGroups.get(key);
         if (!group) return;
 
@@ -5747,7 +5742,7 @@
         tyreDegLapTimeChartInstance = echarts.init(tyreDegLapTimeChart);
       }
 
-      if (tyreDegSelectedStints.size === 0) {
+      if (appState.tyreDeg.selectedStints.size === 0) {
         tyreDegLapTimeChartInstance.clear();
         tyreDegSelectedStintCount.textContent = 'No stints selected';
         return;
@@ -5761,7 +5756,7 @@
       let stintCount = 0;
       let seriesIndex = 0;
 
-      tyreDegSelectedStints.forEach(key => {
+      appState.tyreDeg.selectedStints.forEach(key => {
         const group = tyreDegFilteredGroups.get(key);
         if (!group) return;
 
@@ -5917,7 +5912,6 @@
     const fuelEffectCoefficientsGrid = document.getElementById('fuelEffectCoefficientsGrid');
     const fuelEffectGroupsTableContainer = document.getElementById('fuelEffectGroupsTableContainer');
     let fuelEffectChart = null; // ECharts instance
-    let fuelEffectSelectedRows = new Set(); // Track which rows are selected for plotting
     let fuelEffectFilteredGroups = new Map(); // Store filtered groups for context menu filtering
     let fuelEffectPreviousFilteredKeys = []; // Remember which keys were visible last time
     const fuelEffectDropdownState = { dropdown: null, column: null };
@@ -6079,7 +6073,7 @@
     function renderFuelEffectScatterPlot(groups) {
       // Filter to only selected rows
       const selectedGroups = groups.filter(([key, group]) => {
-        return fuelEffectSelectedRows.has(key);
+        return appState.fuelEffect.selectedRows.has(key);
       });
 
       if (selectedGroups.length === 0) {
@@ -6404,9 +6398,9 @@
 
       currentKeys.forEach(key => {
         const isNew = !previousKeysSet.has(key);
-        if (isNew && !fuelEffectSelectedRows.has(key)) {
+        if (isNew && !appState.fuelEffect.selectedRows.has(key)) {
           // New row that just appeared because of filters -> auto-select it
-          fuelEffectSelectedRows.add(key);
+          appState.fuelEffect.selectedRows.add(key);
         }
       });
 
@@ -6419,12 +6413,12 @@
       // Remove any selections that are no longer valid
       const validKeys = new Set(sortedGroups.map(([key]) => key));
       const staleKeys = [];
-      fuelEffectSelectedRows.forEach(key => {
+      appState.fuelEffect.selectedRows.forEach(key => {
         if (!validKeys.has(key)) {
           staleKeys.push(key);
         }
       });
-      staleKeys.forEach(key => fuelEffectSelectedRows.delete(key));
+      staleKeys.forEach(key => appState.fuelEffect.selectedRows.delete(key));
 
       // Remember current keys so we can detect new rows on the next render
       fuelEffectPreviousFilteredKeys = Array.from(validKeys);
@@ -6477,7 +6471,7 @@
 
       sortedGroups.forEach(([key, group]) => {
         const tr = document.createElement('tr');
-        if (fuelEffectSelectedRows.has(key)) {
+        if (appState.fuelEffect.selectedRows.has(key)) {
           tr.classList.add('stint-selected');
         }
 
@@ -6486,16 +6480,15 @@
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'stint-checkbox';
-        checkbox.checked = fuelEffectSelectedRows.has(key);
+        checkbox.checked = appState.fuelEffect.selectedRows.has(key);
         checkbox.addEventListener('change', () => {
           if (checkbox.checked) {
-            fuelEffectSelectedRows.add(key);
+            appState.fuelEffect.selectedRows.add(key);
             tr.classList.add('stint-selected');
           } else {
-            fuelEffectSelectedRows.delete(key);
+            appState.fuelEffect.selectedRows.delete(key);
             tr.classList.remove('stint-selected');
           }
-          saveToState('fuelEffect.selectedRows', Array.from(fuelEffectSelectedRows));
           renderFuelEffectScatterPlot(sortedGroups);
         });
         tdCheckbox.appendChild(checkbox);
@@ -6548,8 +6541,7 @@
       attachSelectAllCheckbox({
         checkboxId: 'fuelEffectSelectAllCheckbox',
         groupsMap: fuelEffectFilteredGroups,
-        selectedSet: fuelEffectSelectedRows,
-        stateKey: 'fuelEffect.selectedRows',
+        selectedSet: appState.fuelEffect.selectedRows,
         onChange: () => {
           displayFuelEffectGroupsTable(rows);
         }
@@ -6583,14 +6575,13 @@
 
         if (matches) {
           if (select) {
-            fuelEffectSelectedRows.add(key);
+            appState.fuelEffect.selectedRows.add(key);
           } else {
-            fuelEffectSelectedRows.delete(key);
+            appState.fuelEffect.selectedRows.delete(key);
           }
         }
       });
 
-      saveToState('fuelEffect.selectedRows', Array.from(fuelEffectSelectedRows));
 
       // Close the dropdown
       if (fuelEffectDropdownState.dropdown) {
