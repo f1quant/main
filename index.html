@@ -3599,6 +3599,71 @@
 
       if (drivers.length === 0) return;
 
+      // Add "Select All" checkbox at the top
+      const selectAllWrapper = document.createElement('label');
+      selectAllWrapper.className = 'lap-time-driver-item';
+      selectAllWrapper.style.borderBottom = '1px solid var(--border-color)';
+      selectAllWrapper.style.marginBottom = '8px';
+      selectAllWrapper.style.paddingBottom = '8px';
+
+      const selectAllCheckbox = document.createElement('input');
+      selectAllCheckbox.type = 'checkbox';
+      selectAllCheckbox.id = 'lapTimeSelectAllDrivers';
+
+      const selectAllLabel = document.createElement('label');
+      selectAllLabel.textContent = 'Select All';
+      selectAllLabel.style.cursor = 'pointer';
+      selectAllLabel.style.fontWeight = '600';
+
+      selectAllWrapper.appendChild(selectAllCheckbox);
+      selectAllWrapper.appendChild(selectAllLabel);
+      lapTimeDriversList.appendChild(selectAllWrapper);
+
+      // Helper function to update select all checkbox state
+      const updateSelectAllState = () => {
+        const driverCheckboxes = lapTimeDriversList.querySelectorAll('input[type="checkbox"]:not(#lapTimeSelectAllDrivers)');
+        const checkedCount = Array.from(driverCheckboxes).filter(cb => cb.checked).length;
+
+        if (checkedCount === 0) {
+          selectAllCheckbox.checked = false;
+          selectAllCheckbox.indeterminate = false;
+        } else if (checkedCount === driverCheckboxes.length) {
+          selectAllCheckbox.checked = true;
+          selectAllCheckbox.indeterminate = false;
+        } else {
+          selectAllCheckbox.checked = false;
+          selectAllCheckbox.indeterminate = true;
+        }
+      };
+
+      // Select/deselect all drivers
+      selectAllCheckbox.addEventListener('change', (e) => {
+        const driverCheckboxes = lapTimeDriversList.querySelectorAll('input[type="checkbox"]:not(#lapTimeSelectAllDrivers)');
+        const shouldCheck = e.target.checked;
+
+        driverCheckboxes.forEach(cb => {
+          cb.checked = shouldCheck;
+          if (shouldCheck) {
+            selectedDrivers.add(cb.value);
+          } else {
+            selectedDrivers.delete(cb.value);
+          }
+        });
+
+        // Save driver selections to state
+        const drivers = Array.from(selectedDrivers);
+        saveToState('raceTrace.selectedDrivers', drivers);
+        saveToState('lapTime.selectedDrivers', drivers);
+        renderLapTimeChart();
+        renderLapTimeSummaryTable();
+        // Also update race trace chart if it has data
+        if (Object.keys(raceTraceDriverLines).length > 0) {
+          renderRaceTraceChart();
+        }
+
+        updateSelectAllState();
+      });
+
       drivers.forEach(driver => {
         const wrapper = document.createElement('label');
         wrapper.className = 'lap-time-driver-item';
@@ -3627,6 +3692,9 @@
           if (Object.keys(raceTraceDriverLines).length > 0) {
             renderRaceTraceChart();
           }
+
+          // Update select all checkbox state
+          updateSelectAllState();
         });
 
         const label = document.createElement('label');
@@ -3641,6 +3709,9 @@
         wrapper.appendChild(label);
         lapTimeDriversList.appendChild(wrapper);
       });
+
+      // Set initial state of select all checkbox
+      updateSelectAllState();
     }
 
     function getF1TireColor(compound) {
