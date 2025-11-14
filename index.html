@@ -1807,7 +1807,6 @@
         obj = obj[keys[i]];
       }
       obj[keys[keys.length - 1]] = value;
-      console.log(`State updated: ${path} = ${JSON.stringify(value)}`);
     }
 
     /**
@@ -2087,8 +2086,6 @@
       // Capture strategy inputs
       const strategyInputs = document.querySelectorAll('.calculatorStrategyInput');
       appState.calculator.strategies = Array.from(strategyInputs).map(input => input.value);
-
-      console.log('UI state captured:', appState);
     }
 
     // ============================================================================
@@ -2133,8 +2130,6 @@
 
     function initializePanel(panelName, sessionData) {
       if (!sessionData || sessionData.length === 0) return;
-
-      console.log(`Initializing ${panelName} panel with ${sessionData.length} rows`);
 
       // Get current session info
       const year = seasonSel.value;
