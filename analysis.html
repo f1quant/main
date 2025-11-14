@@ -4117,13 +4117,13 @@
           });
           const refAvg = refValues.length > 0 ? refValues.reduce((a, b) => a + b, 0) / refValues.length : 0;
 
-          let text = avg.toFixed(3);
+          td.innerHTML = avg.toFixed(3);
           if (compound !== referenceCompound && refAvg > 0) {
             const delta = avg - refAvg;
             const deltaStr = delta >= 0 ? `+${delta.toFixed(3)}` : delta.toFixed(3);
-            text += ` (${deltaStr})`;
+            const deltaColor = delta < 0 ? '#00ff00' : '#ff0000';
+            td.innerHTML += ` <span style="color: ${deltaColor};">(${deltaStr})</span>`;
           }
-          td.textContent = text;
         } else {
           td.textContent = '-';
           td.style.color = 'var(--muted-color)';
@@ -4196,13 +4196,13 @@
             const avg = driverData[compound];
             const refAvg = driverData[referenceCompound];
 
-            let text = avg.toFixed(3);
+            td.innerHTML = avg.toFixed(3);
             if (compound !== referenceCompound && refAvg !== undefined) {
               const delta = avg - refAvg;
               const deltaStr = delta >= 0 ? `+${delta.toFixed(3)}` : delta.toFixed(3);
-              text += ` (${deltaStr})`;
+              const deltaColor = delta < 0 ? '#00ff00' : '#ff0000';
+              td.innerHTML += ` <span style="color: ${deltaColor};">(${deltaStr})</span>`;
             }
-            td.textContent = text;
           }
 
           tr.appendChild(td);
