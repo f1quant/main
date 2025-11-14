@@ -4629,6 +4629,22 @@
 
     setupTyreDegFilterListeners();
 
+    // Generic helper to sync checkbox groups across multiple tabs
+    function syncCheckboxGroup(ids, stateKey) {
+      const elements = ids.map(id => document.getElementById(id)).filter(Boolean);
+      elements.forEach(el => {
+        el.addEventListener('change', function() {
+          const checked = this.checked;
+          elements.forEach(other => {
+            if (other !== this) other.checked = checked;
+          });
+          if (stateKey) {
+            saveToState(stateKey, checked);
+          }
+        });
+      });
+    }
+
     // Sync common inputs between lap time and tyre deg tabs
     function syncSharedFilters() {
       // Fuel Effect: sync values between lap time (number input) and tyre deg (range slider)
@@ -4746,120 +4762,31 @@
         saveToState('filters.minDist', parseFloat(this.value) || 3);
       });
 
-      // Include Rainfall
-      const filterRainfall = document.getElementById('filterRainfall');
-      const tyreDegFilterRainfall = document.getElementById('tyreDegFilterRainfall');
-      const fuelEffectFilterRainfall = document.getElementById('fuelEffectFilterRainfall');
+      // Sync checkbox groups across tabs using helper
+      syncCheckboxGroup(
+        ['filterRainfall', 'tyreDegFilterRainfall', 'fuelEffectFilterRainfall'],
+        'filters.rainfall'
+      );
 
-      filterRainfall.addEventListener('change', function() {
-        tyreDegFilterRainfall.checked = this.checked;
-        fuelEffectFilterRainfall.checked = this.checked;
-        saveToState('filters.rainfall', this.checked);
-      });
+      syncCheckboxGroup(
+        ['filterSafetyCar', 'tyreDegFilterSafetyCar', 'fuelEffectFilterSafetyCar'],
+        'filters.safetyCar'
+      );
 
-      tyreDegFilterRainfall.addEventListener('change', function() {
-        filterRainfall.checked = this.checked;
-        fuelEffectFilterRainfall.checked = this.checked;
-        saveToState('filters.rainfall', this.checked);
-      });
+      syncCheckboxGroup(
+        ['filterPitLaps', 'tyreDegFilterPitLaps', 'fuelEffectFilterPitLaps'],
+        'filters.pitLaps'
+      );
 
-      fuelEffectFilterRainfall.addEventListener('change', function() {
-        filterRainfall.checked = this.checked;
-        tyreDegFilterRainfall.checked = this.checked;
-        saveToState('filters.rainfall', this.checked);
-      });
+      syncCheckboxGroup(
+        ['filterIncludeLapped', 'tyreDegFilterIncludeLapped', 'fuelEffectFilterIncludeLapped'],
+        'filters.includeLapped'
+      );
 
-      // Include Safety Car
-      const filterSafetyCar = document.getElementById('filterSafetyCar');
-      const tyreDegFilterSafetyCar = document.getElementById('tyreDegFilterSafetyCar');
-      const fuelEffectFilterSafetyCar = document.getElementById('fuelEffectFilterSafetyCar');
-
-      filterSafetyCar.addEventListener('change', function() {
-        tyreDegFilterSafetyCar.checked = this.checked;
-        fuelEffectFilterSafetyCar.checked = this.checked;
-        saveToState('filters.safetyCar', this.checked);
-      });
-
-      tyreDegFilterSafetyCar.addEventListener('change', function() {
-        filterSafetyCar.checked = this.checked;
-        fuelEffectFilterSafetyCar.checked = this.checked;
-        saveToState('filters.safetyCar', this.checked);
-      });
-
-      fuelEffectFilterSafetyCar.addEventListener('change', function() {
-        filterSafetyCar.checked = this.checked;
-        tyreDegFilterSafetyCar.checked = this.checked;
-        saveToState('filters.safetyCar', this.checked);
-      });
-
-      // Include Pit Laps
-      const filterPitLaps = document.getElementById('filterPitLaps');
-      const tyreDegFilterPitLaps = document.getElementById('tyreDegFilterPitLaps');
-      const fuelEffectFilterPitLaps = document.getElementById('fuelEffectFilterPitLaps');
-
-      filterPitLaps.addEventListener('change', function() {
-        tyreDegFilterPitLaps.checked = this.checked;
-        fuelEffectFilterPitLaps.checked = this.checked;
-        saveToState('filters.pitLaps', this.checked);
-      });
-
-      tyreDegFilterPitLaps.addEventListener('change', function() {
-        filterPitLaps.checked = this.checked;
-        fuelEffectFilterPitLaps.checked = this.checked;
-        saveToState('filters.pitLaps', this.checked);
-      });
-
-      fuelEffectFilterPitLaps.addEventListener('change', function() {
-        filterPitLaps.checked = this.checked;
-        tyreDegFilterPitLaps.checked = this.checked;
-        saveToState('filters.pitLaps', this.checked);
-      });
-
-      // Include Lapped
-      const filterIncludeLapped = document.getElementById('filterIncludeLapped');
-      const tyreDegFilterIncludeLapped = document.getElementById('tyreDegFilterIncludeLapped');
-      const fuelEffectFilterIncludeLapped = document.getElementById('fuelEffectFilterIncludeLapped');
-
-      filterIncludeLapped.addEventListener('change', function() {
-        tyreDegFilterIncludeLapped.checked = this.checked;
-        fuelEffectFilterIncludeLapped.checked = this.checked;
-        saveToState('filters.includeLapped', this.checked);
-      });
-
-      tyreDegFilterIncludeLapped.addEventListener('change', function() {
-        filterIncludeLapped.checked = this.checked;
-        fuelEffectFilterIncludeLapped.checked = this.checked;
-        saveToState('filters.includeLapped', this.checked);
-      });
-
-      fuelEffectFilterIncludeLapped.addEventListener('change', function() {
-        filterIncludeLapped.checked = this.checked;
-        tyreDegFilterIncludeLapped.checked = this.checked;
-        saveToState('filters.includeLapped', this.checked);
-      });
-
-      // Include Retired
-      const filterIncludeRetired = document.getElementById('filterIncludeRetired');
-      const tyreDegFilterIncludeRetired = document.getElementById('tyreDegFilterIncludeRetired');
-      const fuelEffectFilterIncludeRetired = document.getElementById('fuelEffectFilterIncludeRetired');
-
-      filterIncludeRetired.addEventListener('change', function() {
-        tyreDegFilterIncludeRetired.checked = this.checked;
-        fuelEffectFilterIncludeRetired.checked = this.checked;
-        saveToState('filters.includeRetired', this.checked);
-      });
-
-      tyreDegFilterIncludeRetired.addEventListener('change', function() {
-        filterIncludeRetired.checked = this.checked;
-        fuelEffectFilterIncludeRetired.checked = this.checked;
-        saveToState('filters.includeRetired', this.checked);
-      });
-
-      fuelEffectFilterIncludeRetired.addEventListener('change', function() {
-        filterIncludeRetired.checked = this.checked;
-        tyreDegFilterIncludeRetired.checked = this.checked;
-        saveToState('filters.includeRetired', this.checked);
-      });
+      syncCheckboxGroup(
+        ['filterIncludeRetired', 'tyreDegFilterIncludeRetired', 'fuelEffectFilterIncludeRetired'],
+        'filters.includeRetired'
+      );
     }
 
     syncSharedFilters();
