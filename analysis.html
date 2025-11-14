@@ -1682,6 +1682,14 @@
         includeRetired: true
       },
 
+      // Shared pace model parameters (used across lap time and calculator tabs)
+      paceModel: {
+        fuelEffect: 0.025,
+        degSoft: 0.12,
+        degMedium: 0.08,
+        degHard: 0.05
+      },
+
       // Race Trace tab
       raceTrace: {
         lapMin: 1,
@@ -1693,10 +1701,6 @@
       lapTime: {
         fuelAdjust: false,
         tyreLifeAdjust: false,
-        degHard: 0.05,
-        degMedium: 0.08,
-        degSoft: 0.12,
-        fuelEffect: 0.025,
         selectedDrivers: [] // Array of driver names (data-dependent)
       },
 
@@ -1720,13 +1724,9 @@
         strategies: ['', '', '', '', ''], // Array of strategy strings
         pitLoss: null,
         scLength: null,
-        fuelEffect: null,
         paceS: null,
         paceM: null,
         paceH: null,
-        degS: null,
-        degM: null,
-        degH: null,
         scProbRanges: [] // Array of {fromLap, toLap, probability}
       }
     };
@@ -1800,10 +1800,10 @@
       document.getElementById('fuelEffectFilterIncludeRetired').checked = appState.filters.includeRetired;
 
       // Lap Time tab
-      document.getElementById('degHard').value = appState.lapTime.degHard;
-      document.getElementById('degMedium').value = appState.lapTime.degMedium;
-      document.getElementById('degSoft').value = appState.lapTime.degSoft;
-      document.getElementById('fuelEffect').value = appState.lapTime.fuelEffect;
+      document.getElementById('degHard').value = appState.paceModel.degHard;
+      document.getElementById('degMedium').value = appState.paceModel.degMedium;
+      document.getElementById('degSoft').value = appState.paceModel.degSoft;
+      document.getElementById('fuelEffect').value = appState.paceModel.fuelEffect;
 
       const fuelAdjustToggle = document.getElementById('fuelAdjustToggle');
       if (appState.lapTime.fuelAdjust) {
@@ -1848,16 +1848,16 @@
       if (calculatorScLength && appState.calculator.scLength !== null) {
         calculatorScLength.value = appState.calculator.scLength;
       }
-      if (calculatorFuelEffect && appState.calculator.fuelEffect !== null) {
-        calculatorFuelEffect.value = appState.calculator.fuelEffect;
+      if (calculatorFuelEffect) {
+        calculatorFuelEffect.value = appState.paceModel.fuelEffect;
       }
 
       document.getElementById('calculatorPaceS').value = appState.calculator.paceS || '';
       document.getElementById('calculatorPaceM').value = appState.calculator.paceM || '';
       document.getElementById('calculatorPaceH').value = appState.calculator.paceH || '';
-      document.getElementById('calculatorDegS').value = appState.calculator.degS || '';
-      document.getElementById('calculatorDegM').value = appState.calculator.degM || '';
-      document.getElementById('calculatorDegH').value = appState.calculator.degH || '';
+      document.getElementById('calculatorDegS').value = appState.paceModel.degSoft;
+      document.getElementById('calculatorDegM').value = appState.paceModel.degMedium;
+      document.getElementById('calculatorDegH').value = appState.paceModel.degHard;
 
       // Restore strategy inputs
       const strategyInputs = document.querySelectorAll('.calculatorStrategyInput');
@@ -1955,10 +1955,10 @@
       appState.filters.includeRetired = document.getElementById('filterIncludeRetired').checked;
 
       // Lap Time tab
-      appState.lapTime.degHard = parseFloat(document.getElementById('degHard').value) || 0.05;
-      appState.lapTime.degMedium = parseFloat(document.getElementById('degMedium').value) || 0.08;
-      appState.lapTime.degSoft = parseFloat(document.getElementById('degSoft').value) || 0.12;
-      appState.lapTime.fuelEffect = parseFloat(document.getElementById('fuelEffect').value) || 0.025;
+      appState.paceModel.degHard = parseFloat(document.getElementById('degHard').value) || 0.05;
+      appState.paceModel.degMedium = parseFloat(document.getElementById('degMedium').value) || 0.08;
+      appState.paceModel.degSoft = parseFloat(document.getElementById('degSoft').value) || 0.12;
+      appState.paceModel.fuelEffect = parseFloat(document.getElementById('fuelEffect').value) || 0.025;
       appState.lapTime.fuelAdjust = document.getElementById('fuelAdjustToggle').classList.contains('active');
       appState.lapTime.tyreLifeAdjust = document.getElementById('tyreLifeAdjustToggle').classList.contains('active');
 
@@ -1989,14 +1989,14 @@
 
       if (calculatorPitLoss) appState.calculator.pitLoss = parseFloat(calculatorPitLoss.value) || null;
       if (calculatorScLength) appState.calculator.scLength = parseInt(calculatorScLength.value) || null;
-      if (calculatorFuelEffect) appState.calculator.fuelEffect = parseFloat(calculatorFuelEffect.value) || null;
+      if (calculatorFuelEffect) appState.paceModel.fuelEffect = parseFloat(calculatorFuelEffect.value) || 0.025;
 
       appState.calculator.paceS = parseFloat(document.getElementById('calculatorPaceS').value) || null;
       appState.calculator.paceM = parseFloat(document.getElementById('calculatorPaceM').value) || null;
       appState.calculator.paceH = parseFloat(document.getElementById('calculatorPaceH').value) || null;
-      appState.calculator.degS = parseFloat(document.getElementById('calculatorDegS').value) || null;
-      appState.calculator.degM = parseFloat(document.getElementById('calculatorDegM').value) || null;
-      appState.calculator.degH = parseFloat(document.getElementById('calculatorDegH').value) || null;
+      appState.paceModel.degSoft = parseFloat(document.getElementById('calculatorDegS').value) || 0.12;
+      appState.paceModel.degMedium = parseFloat(document.getElementById('calculatorDegM').value) || 0.08;
+      appState.paceModel.degHard = parseFloat(document.getElementById('calculatorDegH').value) || 0.05;
 
       // Capture strategy inputs
       const strategyInputs = document.querySelectorAll('.calculatorStrategyInput');
@@ -2306,23 +2306,34 @@
       if (circuitName && circuitConfig[circuitName]) {
         const config = circuitConfig[circuitName];
 
-        // Set lap time adjustments
+        // Set lap time adjustments and sync to calculator tab
         if (config["Hard Deg"] !== undefined) {
-          document.getElementById('degHard').value = config["Hard Deg"];
+          const value = config["Hard Deg"];
+          document.getElementById('degHard').value = value;
+          const calculatorDegH = document.getElementById('calculatorDegH');
+          if (calculatorDegH) calculatorDegH.value = value;
         }
         if (config["Medium Deg"] !== undefined) {
-          document.getElementById('degMedium').value = config["Medium Deg"];
+          const value = config["Medium Deg"];
+          document.getElementById('degMedium').value = value;
+          const calculatorDegM = document.getElementById('calculatorDegM');
+          if (calculatorDegM) calculatorDegM.value = value;
         }
         if (config["Soft Deg"] !== undefined) {
-          document.getElementById('degSoft').value = config["Soft Deg"];
+          const value = config["Soft Deg"];
+          document.getElementById('degSoft').value = value;
+          const calculatorDegS = document.getElementById('calculatorDegS');
+          if (calculatorDegS) calculatorDegS.value = value;
         }
 
-        // Set fuel effect for both tabs (synced)
+        // Set fuel effect for all tabs (synced)
         if (config["Fuel Effect"] !== undefined) {
           const fuelEffect = config["Fuel Effect"];
           document.getElementById('fuelEffect').value = fuelEffect;
           document.getElementById('tyreDegFuelEffectSlider').value = fuelEffect;
           document.getElementById('tyreDegFuelEffectValue').textContent = parseFloat(fuelEffect).toFixed(3);
+          const calculatorFuelEffect = document.getElementById('calculatorFuelEffect');
+          if (calculatorFuelEffect) calculatorFuelEffect.value = fuelEffect;
         }
       }
 
@@ -3181,15 +3192,27 @@
       document.getElementById('filterIncludeLapped').addEventListener('change', onLapTimeFilterChange);
       document.getElementById('filterIncludeRetired').addEventListener('change', onLapTimeFilterChange);
       document.getElementById('degHard').addEventListener('input', function() {
-        saveToState('lapTime.degHard', parseFloat(this.value) || 0.05);
+        const value = parseFloat(this.value) || 0.05;
+        saveToState('paceModel.degHard', value);
+        // Sync to calculator tab
+        const calculatorDegH = document.getElementById('calculatorDegH');
+        if (calculatorDegH) calculatorDegH.value = value;
         onLapTimeAdjustmentChange();
       });
       document.getElementById('degMedium').addEventListener('input', function() {
-        saveToState('lapTime.degMedium', parseFloat(this.value) || 0.08);
+        const value = parseFloat(this.value) || 0.08;
+        saveToState('paceModel.degMedium', value);
+        // Sync to calculator tab
+        const calculatorDegM = document.getElementById('calculatorDegM');
+        if (calculatorDegM) calculatorDegM.value = value;
         onLapTimeAdjustmentChange();
       });
       document.getElementById('degSoft').addEventListener('input', function() {
-        saveToState('lapTime.degSoft', parseFloat(this.value) || 0.12);
+        const value = parseFloat(this.value) || 0.12;
+        saveToState('paceModel.degSoft', value);
+        // Sync to calculator tab
+        const calculatorDegS = document.getElementById('calculatorDegS');
+        if (calculatorDegS) calculatorDegS.value = value;
         onLapTimeAdjustmentChange();
       });
       document.getElementById('fuelEffect').addEventListener('input', onLapTimeAdjustmentChange);
@@ -4002,7 +4025,10 @@
         // Sync to tyre deg slider (doesn't trigger input event)
         tyreDegFuelEffectSlider.value = value;
         tyreDegFuelEffectValue.textContent = value.toFixed(3);
-        saveToState('lapTime.fuelEffect', value);
+        // Sync to calculator tab
+        const calculatorFuelEffect = document.getElementById('calculatorFuelEffect');
+        if (calculatorFuelEffect) calculatorFuelEffect.value = value;
+        saveToState('paceModel.fuelEffect', value);
       });
 
       tyreDegFuelEffectSlider.addEventListener('input', function() {
@@ -6809,20 +6835,16 @@
         // Don't set numLaps from config - use sched_laps from session
         document.getElementById("calculatorPitLoss").value = config['Pit Loss'] || 21.8;
         document.getElementById("calculatorScLength").value = config['SC Length'] || 5;
-        document.getElementById("calculatorFuelEffect").value = config['Fuel Effect'] || 0.018;
 
-        // Load compound data
+        // Load compound pace data only (degradation comes from shared paceModel)
         if (config['Softs']) {
           document.getElementById("calculatorPaceS").value = config['Softs']['Pace'] || 75.0;
-          document.getElementById("calculatorDegS").value = config['Softs']['Deg'] || 0.08;
         }
         if (config['Mediums']) {
           document.getElementById("calculatorPaceM").value = config['Mediums']['Pace'] || 75.5;
-          document.getElementById("calculatorDegM").value = config['Mediums']['Deg'] || 0.06;
         }
         if (config['Hards']) {
           document.getElementById("calculatorPaceH").value = config['Hards']['Pace'] || 76.5;
-          document.getElementById("calculatorDegH").value = config['Hards']['Deg'] || 0.02;
         }
 
         // Load strategies of interest if available
@@ -6857,16 +6879,12 @@
         }
         runCalculatorSimulation();
       } else {
-        // Default values
+        // Default values (degradation and fuel effect come from shared paceModel)
         document.getElementById("calculatorPitLoss").value = 21.8;
         document.getElementById("calculatorScLength").value = 5;
-        document.getElementById("calculatorFuelEffect").value = 0.018;
         document.getElementById("calculatorPaceS").value = 75.0;
-        document.getElementById("calculatorDegS").value = 0.08;
         document.getElementById("calculatorPaceM").value = 75.5;
-        document.getElementById("calculatorDegM").value = 0.06;
         document.getElementById("calculatorPaceH").value = 76.5;
-        document.getElementById("calculatorDegH").value = 0.02;
 
         // Initialize SC probability table
         const tbody = document.querySelector("#calculatorScProbTable tbody");
@@ -6903,7 +6921,16 @@
       saveToState('calculator.scLength', parseInt(this.value) || null);
     });
     document.getElementById('calculatorFuelEffect').addEventListener('input', function() {
-      saveToState('calculator.fuelEffect', parseFloat(this.value) || null);
+      const value = parseFloat(this.value) || 0.025;
+      saveToState('paceModel.fuelEffect', value);
+      // Sync to lap time tab
+      const fuelEffectInput = document.getElementById('fuelEffect');
+      if (fuelEffectInput) fuelEffectInput.value = value;
+      // Sync to tyre deg slider
+      const tyreDegFuelEffectSlider = document.getElementById('tyreDegFuelEffectSlider');
+      const tyreDegFuelEffectValue = document.getElementById('tyreDegFuelEffectValue');
+      if (tyreDegFuelEffectSlider) tyreDegFuelEffectSlider.value = value;
+      if (tyreDegFuelEffectValue) tyreDegFuelEffectValue.textContent = value.toFixed(3);
     });
     document.getElementById('calculatorPaceS').addEventListener('input', function() {
       saveToState('calculator.paceS', parseFloat(this.value) || null);
@@ -6915,13 +6942,25 @@
       saveToState('calculator.paceH', parseFloat(this.value) || null);
     });
     document.getElementById('calculatorDegS').addEventListener('input', function() {
-      saveToState('calculator.degS', parseFloat(this.value) || null);
+      const value = parseFloat(this.value) || 0.12;
+      saveToState('paceModel.degSoft', value);
+      // Sync to lap time tab
+      const degSoft = document.getElementById('degSoft');
+      if (degSoft) degSoft.value = value;
     });
     document.getElementById('calculatorDegM').addEventListener('input', function() {
-      saveToState('calculator.degM', parseFloat(this.value) || null);
+      const value = parseFloat(this.value) || 0.08;
+      saveToState('paceModel.degMedium', value);
+      // Sync to lap time tab
+      const degMedium = document.getElementById('degMedium');
+      if (degMedium) degMedium.value = value;
     });
     document.getElementById('calculatorDegH').addEventListener('input', function() {
-      saveToState('calculator.degH', parseFloat(this.value) || null);
+      const value = parseFloat(this.value) || 0.05;
+      saveToState('paceModel.degHard', value);
+      // Sync to lap time tab
+      const degHard = document.getElementById('degHard');
+      if (degHard) degHard.value = value;
     });
 
     // Save strategy inputs to state
