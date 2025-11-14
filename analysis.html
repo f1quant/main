@@ -4172,7 +4172,9 @@
 
         // Driver name cell
         const driverCell = document.createElement('td');
-        driverCell.textContent = driver;
+        const info = getLapTimeDriverInfo(driver);
+        const displayName = info.fullName ? `${info.fullName} (${driver})` : driver;
+        driverCell.textContent = displayName;
         const driverColor = lapTimeDriverColors.get(driver) || '#888888';
         driverCell.style.color = driverColor;
         driverCell.style.fontWeight = '600';
