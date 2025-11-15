@@ -1957,9 +1957,6 @@
         obj = obj[keys[i]];
       }
       obj[keys[keys.length - 1]] = value;
-
-      // Update URL with debouncing
-      updateURLFromState();
     }
 
     /**
@@ -2215,14 +2212,6 @@
         console.error('Failed to decode permalink state:', e);
         return null;
       }
-    }
-
-    /**
-     * No-op function - automatic URL updating is disabled
-     * Use generateAndCopyPermalink() button instead
-     */
-    function updateURLFromState() {
-      // Disabled - manual permalink generation via button
     }
 
     /**
@@ -2533,9 +2522,6 @@
       }
 
       appState.currentActiveTab = tabName;
-
-      // Update URL to reflect tab change
-      updateURLFromState();
 
       // Initialize panel if data is available
       if (currentSessionData) {
@@ -2948,9 +2934,6 @@
         }
         // Note: Don't clear isRestoring flag here - it's cleared after explicit restoration completes
       }
-
-      // Update URL with new session
-      updateURLFromState();
     }
 
     // ============================================================================
@@ -3331,9 +3314,6 @@
         }
 
         updateSelectAllState();
-
-        // Update URL with new driver selection
-        updateURLFromState();
       });
 
       sortedDriverFinishInfo.forEach(({ driver }) => {
@@ -3364,9 +3344,6 @@
 
           // Update select all checkbox state
           updateSelectAllState();
-
-          // Update URL with new driver selection
-          updateURLFromState();
         });
 
         const label = document.createElement('label');
@@ -4377,9 +4354,6 @@
         }
 
         updateSelectAllState();
-
-        // Update URL with new driver selection
-        updateURLFromState();
       });
 
       drivers.forEach(driver => {
@@ -4410,9 +4384,6 @@
 
           // Update select all checkbox state
           updateSelectAllState();
-
-          // Update URL with new driver selection
-          updateURLFromState();
         });
 
         const label = document.createElement('label');
@@ -5013,7 +4984,6 @@
           if (Object.keys(raceTraceDriverLines).length > 0) {
             renderRaceTraceChart();
           }
-          updateURLFromState();
         });
         tdCheckbox.appendChild(checkbox);
         tr.appendChild(tdCheckbox);
@@ -5139,7 +5109,6 @@
           if (Object.keys(raceTraceDriverLines).length > 0) {
             renderRaceTraceChart();
           };
-          updateURLFromState();
         });
 
         // Set initial state of select all checkbox (checked/unchecked/indeterminate)
@@ -5308,7 +5277,6 @@
         }
         // selectedSet is already updated directly, no need to save
         onChange();
-        updateURLFromState();
       });
 
       // Update checked / indeterminate state
@@ -5692,7 +5660,6 @@
           }
           renderTyreDegScatterChart();
           renderTyreDegLapTimeChart();
-          updateURLFromState();
         });
         tdCheckbox.appendChild(checkbox);
         tr.appendChild(tdCheckbox);
@@ -6788,7 +6755,6 @@
             tr.classList.remove('stint-selected');
           }
           renderFuelEffectScatterPlot(sortedGroups);
-          updateURLFromState();
         });
         tdCheckbox.appendChild(checkbox);
         tr.appendChild(tdCheckbox);
