@@ -92,7 +92,8 @@
       padding: 0 12px;
     }
 
-    .tab-navigation #reloadDataBtn {
+    .tab-navigation #reloadDataBtn,
+    .tab-navigation #spoilerModeBtn {
       padding: 8px 16px;
       font-size: 12px;
       border-radius: 8px;
@@ -1261,13 +1262,170 @@
         max-height: none;
         overflow: visible;
       }
-      .calculator-strategies-row {
-        flex-direction: column;
-      }
+    .calculator-strategies-row {
+      flex-direction: column;
+    }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .spoiler-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 8, 12, 0.92);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 16px;
+    }
+
+    .spoiler-overlay.show {
+      display: flex;
+    }
+
+    .spoiler-modal {
+      width: min(560px, 100%);
+      background: rgba(22, 26, 35, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65);
+      color: var(--text-color);
+    }
+
+    .spoiler-modal h2 {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+
+    .spoiler-modal p {
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: var(--muted-color);
+    }
+
+    .spoiler-choice {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .spoiler-button {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      background: var(--accent-color);
+      color: #050505;
+      transition: opacity 0.2s ease;
+    }
+
+    .spoiler-button.secondary {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .spoiler-button.link {
+      background: transparent;
+      border: none;
+      color: var(--accent-color);
+      text-decoration: underline;
+      padding-left: 0;
+    }
+
+    .spoiler-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .spoiler-config-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .spoiler-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .spoiler-field label {
+      font-size: 13px;
+      color: var(--muted-color);
+    }
+
+    .spoiler-field select {
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--text-color);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .spoiler-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .spoiler-status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--accent-color);
+    }
+
+    #spoilerModeBtn {
+      margin-left: 8px;
     }
   </style>
 </head>
 <body>
+  <div id="spoilerOverlay" class="spoiler-overlay">
+    <div class="spoiler-modal">
+      <h2>Enable Spoiler Mode?</h2>
+      <p>Hide any sessions you have not watched yet.</p>
+      <div id="spoilerChoiceSection" class="spoiler-choice">
+        <button id="spoilerEnableBtn" class="spoiler-button">Enable Spoiler Mode</button>
+        <button id="spoilerSkipBtn" class="spoiler-button secondary">No Thanks</button>
+      </div>
+      <div id="spoilerConfigSection" class="spoiler-config-grid hidden">
+        <div class="spoiler-field">
+          <label for="spoilerSeasonSelect">Last race you watched</label>
+          <select id="spoilerSeasonSelect" disabled>
+            <option value="">Loading...</option>
+          </select>
+        </div>
+        <div class="spoiler-field">
+          <label for="spoilerGPSelect">Grand Prix</label>
+          <select id="spoilerGPSelect" disabled>
+            <option value="">Select a season first</option>
+          </select>
+        </div>
+        <div class="spoiler-field">
+          <label for="spoilerSessionSelect">Session</label>
+          <select id="spoilerSessionSelect" disabled>
+            <option value="">Select a race weekend</option>
+          </select>
+        </div>
+        <div class="spoiler-actions">
+          <button id="spoilerSaveBtn" class="spoiler-button">Save & Continue</button>
+          <button id="spoilerBackBtn" class="spoiler-button secondary">Back</button>
+          <button id="spoilerDisableBtn" class="spoiler-button link">Disable Spoiler Mode</button>
+        </div>
+        <div id="spoilerConfigStatus" class="spoiler-status"></div>
+      </div>
+    </div>
+  </div>
   <div class="page-content">
   <div class="container">
     <!-- Tab Navigation -->
@@ -1280,6 +1438,7 @@
       <button class="tab-button" data-tab="calculator" data-tooltip="Calculates the optimal free-air tyre strategy and compares it to other strategies">Calculator</button>
       <span class="status-message" id="statusMessage">Loading...</span>
       <button id="reloadDataBtn" type="button" title="Reload data from server">Reload Data</button>
+      <button id="spoilerModeBtn" type="button" title="Adjust spoiler settings">Spoiler Mode</button>
       <button id="copyPermalinkBtn" type="button" data-tooltip="Copy permalink URL to clipboard">Copy Permalink</button>
     </div>
 
@@ -1788,10 +1947,30 @@
     const sessionSel = document.getElementById("sessionSel");
     const statusMessage = document.getElementById("statusMessage");
     const reloadDataBtn = document.getElementById("reloadDataBtn");
+    const spoilerModeBtn = document.getElementById("spoilerModeBtn");
+    const spoilerOverlay = document.getElementById('spoilerOverlay');
+    const spoilerChoiceSection = document.getElementById('spoilerChoiceSection');
+    const spoilerConfigSection = document.getElementById('spoilerConfigSection');
+    const spoilerSeasonSelect = document.getElementById('spoilerSeasonSelect');
+    const spoilerGPSelect = document.getElementById('spoilerGPSelect');
+    const spoilerSessionSelect = document.getElementById('spoilerSessionSelect');
+    const spoilerEnableBtn = document.getElementById('spoilerEnableBtn');
+    const spoilerSkipBtn = document.getElementById('spoilerSkipBtn');
+    const spoilerSaveBtn = document.getElementById('spoilerSaveBtn');
+    const spoilerBackBtn = document.getElementById('spoilerBackBtn');
+    const spoilerDisableBtn = document.getElementById('spoilerDisableBtn');
+    const spoilerConfigStatus = document.getElementById('spoilerConfigStatus');
 
     let allRows = [];
+    let allRowsRaw = [];
     let sessionsByKey = new Map();
+    const fullSessionsByKey = new Map();
     let currentSessionData = null; // Stores filtered data for current session
+    let rawDataReady = false;
+    let spoilerDecisionResolved = false;
+    let sessionsInitialized = false;
+    let pendingSessionRestore = false;
+    let spoilerEventsInitialized = false;
 
     // ============================================================================
     // GLOBAL STATE MANAGEMENT
@@ -1947,6 +2126,451 @@
       }
     };
 
+    // ============================================================================
+    // SPOILER MODE HELPERS
+    // ============================================================================
+
+    const SPOILER_COOKIE_NAME = 'f1SpoilerConfig';
+    const SPOILER_COOKIE_MAX_AGE = 60 * 60 * 24 * 180; // 180 days
+    const SPOILER_SESSION_ORDER = [
+      'FP0',
+      'FP1',
+      'FP2',
+      'FP3',
+      'PRACTICE',
+      'SPRINT SHOOTOUT',
+      'SPRINT QUALIFYING',
+      'SQ',
+      'SPRINT',
+      'S',
+      'QUALIFYING',
+      'Q',
+      'RACE',
+      'R'
+    ];
+
+    const spoilerSessionOrderMap = new Map();
+    SPOILER_SESSION_ORDER.forEach((label, index) => {
+      spoilerSessionOrderMap.set(label, index);
+    });
+
+    let spoilerConfig = {
+      enabled: false,
+      lastSeason: null,
+      lastRound: null,
+      lastSessionType: null,
+      lastMeetingName: null
+    };
+
+    function getSessionOrderValue(sessionType) {
+      if (!sessionType) return SPOILER_SESSION_ORDER.length + 10;
+      const normalized = String(sessionType).trim().toUpperCase();
+      return spoilerSessionOrderMap.has(normalized)
+        ? spoilerSessionOrderMap.get(normalized)
+        : SPOILER_SESSION_ORDER.length + 5;
+    }
+
+    function filterRowsForSpoilerConfig(rows, config) {
+      if (!config.enabled || !config.lastSeason || !config.lastRound || !config.lastSessionType) {
+        return rows.slice();
+      }
+
+      const targetSeason = parseInt(config.lastSeason, 10);
+      const targetRound = parseInt(config.lastRound, 10);
+      const cutoffOrder = getSessionOrderValue(config.lastSessionType);
+
+      return rows.filter(row => {
+        const season = parseInt(row.year, 10);
+        const round = parseInt(row.round_no, 10);
+        if (!Number.isFinite(season) || !Number.isFinite(round)) return false;
+
+        if (season < targetSeason) return true;
+        if (season > targetSeason) return false;
+        if (round < targetRound) return true;
+        if (round > targetRound) return false;
+
+        const order = getSessionOrderValue(row.session_type);
+        return order <= cutoffOrder;
+      });
+    }
+
+    function saveSpoilerConfigToCookie(config) {
+      try {
+        const payload = encodeURIComponent(JSON.stringify(config));
+        document.cookie = `${SPOILER_COOKIE_NAME}=${payload};path=/;max-age=${SPOILER_COOKIE_MAX_AGE}`;
+      } catch (err) {
+        console.warn('Unable to save spoiler settings', err);
+      }
+    }
+
+    function loadSpoilerConfigFromCookie() {
+      const cookies = document.cookie ? document.cookie.split('; ') : [];
+      const entry = cookies.find(row => row.startsWith(`${SPOILER_COOKIE_NAME}=`));
+      if (!entry) return null;
+      try {
+        const value = decodeURIComponent(entry.split('=')[1] || '');
+        return JSON.parse(value);
+      } catch (err) {
+        console.warn('Unable to parse spoiler cookie', err);
+        return null;
+      }
+    }
+
+    function updateSpoilerModeButtonState() {
+      if (!spoilerModeBtn) return;
+      spoilerModeBtn.textContent = spoilerConfig.enabled ? 'Spoiler Mode: ON' : 'Spoiler Mode: OFF';
+    }
+
+    function showSpoilerChoiceView() {
+      if (!spoilerChoiceSection || !spoilerConfigSection) return;
+      spoilerChoiceSection.classList.remove('hidden');
+      spoilerConfigSection.classList.add('hidden');
+    }
+
+    function showSpoilerConfigFormView() {
+      if (!spoilerChoiceSection || !spoilerConfigSection) return;
+      spoilerChoiceSection.classList.add('hidden');
+      spoilerConfigSection.classList.remove('hidden');
+      if (spoilerConfigStatus) spoilerConfigStatus.textContent = '';
+      if (rawDataReady) {
+        const prefs = getSpoilerPreferenceValues();
+        populateSpoilerSeasonOptions(prefs.season, prefs.gp, prefs.sessionType);
+      }
+      if (spoilerDisableBtn) {
+        spoilerDisableBtn.classList.toggle('hidden', !spoilerConfig.enabled);
+      }
+    }
+
+    function openSpoilerOverlay(options = {}) {
+      const { forceConfig = false } = options;
+      if (!spoilerOverlay) return;
+      spoilerOverlay.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      if (forceConfig || spoilerConfig.enabled) {
+        showSpoilerConfigFormView();
+      } else {
+        showSpoilerChoiceView();
+      }
+    }
+
+    function closeSpoilerOverlay() {
+      if (!spoilerOverlay) return;
+      spoilerOverlay.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+
+    function formatSessionLabel(sessionType) {
+      if (!sessionType) return '';
+      const normalized = String(sessionType).trim().toUpperCase();
+      switch (normalized) {
+        case 'R':
+        case 'RACE':
+          return 'Race';
+        case 'S':
+        case 'SPRINT':
+          return 'Sprint';
+        case 'SQ':
+        case 'SPRINT QUALIFYING':
+        case 'SPRINT SHOOTOUT':
+          return 'Sprint Shootout';
+        case 'Q':
+        case 'QUALIFYING':
+          return 'Qualifying';
+        case 'FP1':
+          return 'Practice 1';
+        case 'FP2':
+          return 'Practice 2';
+        case 'FP3':
+          return 'Practice 3';
+        default:
+          return sessionType;
+      }
+    }
+
+    function getSpoilerPreferenceValues() {
+      const season = appState.session.season || spoilerConfig.lastSeason || '';
+      const gpPref = appState.session.gp || (spoilerConfig.lastRound && spoilerConfig.lastMeetingName ? `${spoilerConfig.lastRound}||${spoilerConfig.lastMeetingName}` : '');
+      const sessionType = appState.session.sessionType || spoilerConfig.lastSessionType || '';
+      return {
+        season: season || '',
+        gp: gpPref || '',
+        sessionType: sessionType || ''
+      };
+    }
+
+    function populateSpoilerSeasonOptions(preferredSeason = null, preferredGP = null, preferredSession = null) {
+      if (!spoilerSeasonSelect) return;
+      const seasons = new Set();
+      fullSessionsByKey.forEach(value => {
+        if (value.year) seasons.add(value.year);
+      });
+      const sorted = Array.from(seasons).sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+      spoilerSeasonSelect.innerHTML = '<option value="">Select a season</option>';
+      sorted.forEach(season => {
+        const opt = document.createElement('option');
+        opt.value = season;
+        opt.textContent = season;
+        spoilerSeasonSelect.appendChild(opt);
+      });
+      spoilerSeasonSelect.disabled = sorted.length === 0;
+      if (sorted.length === 0) {
+        populateSpoilerGPOptions('', null);
+        return;
+      }
+      let targetSeason = preferredSeason && sorted.includes(preferredSeason) ? preferredSeason : sorted[0];
+      spoilerSeasonSelect.value = targetSeason;
+      populateSpoilerGPOptions(targetSeason, preferredGP, preferredSession);
+    }
+
+    function populateSpoilerGPOptions(season, preferredGP = null, preferredSession = null) {
+      if (!spoilerGPSelect) return;
+      spoilerGPSelect.innerHTML = '<option value="">Select a race weekend</option>';
+      spoilerGPSelect.disabled = true;
+      populateSpoilerSessionOptions('', '', '', null);
+      if (!season) return;
+
+      const gpEntries = new Map();
+      fullSessionsByKey.forEach(value => {
+        if (value.year === season) {
+          const round = parseInt(value.round_no, 10) || 0;
+          const key = `${round}||${value.meeting_name}`;
+          if (!gpEntries.has(key)) {
+            gpEntries.set(key, { round, meeting: value.meeting_name });
+          }
+        }
+      });
+
+      const sorted = Array.from(gpEntries.values()).sort((a, b) => a.round - b.round);
+      sorted.forEach(entry => {
+        const opt = document.createElement('option');
+        opt.value = `${entry.round}||${entry.meeting}`;
+        opt.textContent = `Round ${entry.round}: ${entry.meeting}`;
+        spoilerGPSelect.appendChild(opt);
+      });
+      spoilerGPSelect.disabled = sorted.length === 0;
+      if (sorted.length === 0) {
+        populateSpoilerSessionOptions('', '', '', null);
+        return;
+      }
+      let targetEntry = sorted[sorted.length - 1];
+      if (preferredGP) {
+        const [round, meeting] = preferredGP.split('||');
+        const found = sorted.find(entry => String(entry.round) === String(round) && entry.meeting === meeting);
+        if (found) {
+          targetEntry = found;
+        }
+      }
+      const targetOption = `${targetEntry.round}||${targetEntry.meeting}`;
+      spoilerGPSelect.value = targetOption;
+      populateSpoilerSessionOptions(season, targetEntry.round, targetEntry.meeting, preferredSession);
+    }
+
+    function populateSpoilerSessionOptions(season, round, meetingName, preferredSession = null) {
+      if (!spoilerSessionSelect) return;
+      spoilerSessionSelect.innerHTML = '<option value="">Select a session</option>';
+      spoilerSessionSelect.disabled = true;
+
+      if (!season || !round) return;
+
+      const sessions = new Set();
+      fullSessionsByKey.forEach(value => {
+        if (value.year === String(season) &&
+            String(value.round_no) === String(round) &&
+            (!meetingName || value.meeting_name === meetingName)) {
+          sessions.add(value.session_type);
+        }
+      });
+
+      const sortedSessions = Array.from(sessions).sort((a, b) => {
+        return getSessionOrderValue(a) - getSessionOrderValue(b);
+      });
+
+      sortedSessions.forEach(sessionType => {
+        const opt = document.createElement('option');
+        opt.value = sessionType;
+        opt.textContent = formatSessionLabel(sessionType);
+        spoilerSessionSelect.appendChild(opt);
+      });
+
+      spoilerSessionSelect.disabled = sortedSessions.length === 0;
+      if (sortedSessions.length === 0) return;
+
+      let targetSession = sortedSessions[sortedSessions.length - 1];
+      if (preferredSession && sortedSessions.includes(preferredSession)) {
+        targetSession = preferredSession;
+      }
+      spoilerSessionSelect.value = targetSession;
+    }
+
+    function updateStatusMessageForSpoilers() {
+      if (!statusMessage || !rawDataReady) return;
+      if (spoilerConfig.enabled && spoilerConfig.lastSeason) {
+        const meeting = spoilerConfig.lastMeetingName ? ` - ${spoilerConfig.lastMeetingName}` : '';
+        const roundLabel = spoilerConfig.lastRound ? ` Round ${spoilerConfig.lastRound}` : '';
+      }
+      statusMessage.textContent = `${allRows.length} laps loaded`;
+    }
+
+    function applySpoilerFilter() {
+      allRows = filterRowsForSpoilerConfig(allRowsRaw, spoilerConfig);
+      indexSessions(allRows, sessionsByKey);
+    }
+
+    function initializeSessionsUI(options = {}) {
+      const { preserveSelection = false } = options;
+      sessionsInitialized = true;
+
+      if (pendingSessionRestore) {
+        window.permalinkSession = window.permalinkSession || {};
+        window.permalinkSession.isRestoring = true;
+      }
+
+      UIHelpers.populateSeasons(seasonSel, sessionsByKey, {});
+      const availableSeasons = Array.from(seasonSel.options).map(opt => opt.value);
+
+      let targetSeason = null;
+      if (preserveSelection && seasonSel.value && availableSeasons.includes(seasonSel.value)) {
+        targetSeason = seasonSel.value;
+      } else if (appState.session.season && availableSeasons.includes(appState.session.season)) {
+        targetSeason = appState.session.season;
+      } else if (availableSeasons.length > 0) {
+        targetSeason = availableSeasons[0];
+      }
+
+      if (targetSeason) {
+        seasonSel.value = targetSeason;
+        appState.session.season = targetSeason;
+      }
+
+      onSeasonChange();
+
+      if (pendingSessionRestore && window.permalinkSession) {
+        window.permalinkSession.isRestoring = false;
+        pendingSessionRestore = false;
+      }
+
+      updateStatusMessageForSpoilers();
+    }
+
+    function maybeInitializeAfterPrereqs(options = {}) {
+      const { preserveSelection = false } = options;
+      if (!rawDataReady || !spoilerDecisionResolved) return;
+      applySpoilerFilter();
+      initializeSessionsUI({ preserveSelection });
+    }
+
+    function handleSpoilerSelectionSaved({ enabled, season, round, sessionType, meetingName }) {
+      spoilerConfig = {
+        enabled,
+        lastSeason: enabled ? (season || null) : null,
+        lastRound: enabled ? (round || null) : null,
+        lastSessionType: enabled ? (sessionType || null) : null,
+        lastMeetingName: enabled ? (meetingName || null) : null
+      };
+      spoilerDecisionResolved = true;
+      saveSpoilerConfigToCookie(spoilerConfig);
+      updateSpoilerModeButtonState();
+      if (spoilerConfigStatus) spoilerConfigStatus.textContent = '';
+      closeSpoilerOverlay();
+      maybeInitializeAfterPrereqs({ preserveSelection: false });
+    }
+
+    function handleSpoilerSaveSelection() {
+      if (!spoilerSeasonSelect || !spoilerGPSelect || !spoilerSessionSelect) return;
+      const season = spoilerSeasonSelect.value;
+      const gpValue = spoilerGPSelect.value;
+      const sessionType = spoilerSessionSelect.value;
+
+      if (!season || !gpValue || !sessionType) {
+        if (spoilerConfigStatus) {
+          spoilerConfigStatus.textContent = 'Please select a season, Grand Prix, and session.';
+        }
+        return;
+      }
+
+      const [round, meetingName] = gpValue.split('||');
+      handleSpoilerSelectionSaved({
+        enabled: true,
+        season,
+        round,
+        sessionType,
+        meetingName
+      });
+    }
+
+    function handleSpoilerSkipChoice() {
+      handleSpoilerSelectionSaved({ enabled: false });
+    }
+
+    function handleSpoilerDisableChoice() {
+      handleSpoilerSelectionSaved({ enabled: false });
+    }
+
+    function handleSpoilerBackToChoice() {
+      showSpoilerChoiceView();
+    }
+
+    function initializeSpoilerStateFromCookie() {
+      const saved = loadSpoilerConfigFromCookie();
+      if (saved && typeof saved === 'object') {
+        spoilerConfig = {
+          enabled: !!saved.enabled,
+          lastSeason: saved.lastSeason || null,
+          lastRound: saved.lastRound || null,
+          lastSessionType: saved.lastSessionType || null,
+          lastMeetingName: saved.lastMeetingName || null
+        };
+        spoilerDecisionResolved = true;
+      }
+      updateSpoilerModeButtonState();
+    }
+
+    function setupSpoilerEventListeners() {
+      if (spoilerEventsInitialized) return;
+      spoilerEventsInitialized = true;
+
+      if (spoilerEnableBtn) {
+        spoilerEnableBtn.addEventListener('click', () => showSpoilerConfigFormView());
+      }
+      if (spoilerSkipBtn) {
+        spoilerSkipBtn.addEventListener('click', handleSpoilerSkipChoice);
+      }
+      if (spoilerSaveBtn) {
+        spoilerSaveBtn.addEventListener('click', handleSpoilerSaveSelection);
+      }
+      if (spoilerBackBtn) {
+        spoilerBackBtn.addEventListener('click', handleSpoilerBackToChoice);
+      }
+      if (spoilerDisableBtn) {
+        spoilerDisableBtn.addEventListener('click', handleSpoilerDisableChoice);
+      }
+      if (spoilerModeBtn) {
+        spoilerModeBtn.addEventListener('click', () => {
+          openSpoilerOverlay({ forceConfig: true });
+        });
+      }
+      if (spoilerSeasonSelect) {
+        spoilerSeasonSelect.addEventListener('change', () => {
+          populateSpoilerGPOptions(spoilerSeasonSelect.value, null);
+        });
+      }
+      if (spoilerGPSelect) {
+        spoilerGPSelect.addEventListener('change', () => {
+          const gpValue = spoilerGPSelect.value;
+          if (!gpValue) {
+            populateSpoilerSessionOptions('', '', '', null);
+            return;
+          }
+          const [round, meeting] = gpValue.split('||');
+          populateSpoilerSessionOptions(spoilerSeasonSelect.value, round, meeting, null);
+        });
+      }
+      if (spoilerSessionSelect) {
+        spoilerSessionSelect.addEventListener('change', () => {
+          if (spoilerConfigStatus) spoilerConfigStatus.textContent = '';
+        });
+      }
+    }
     /**
      * Save a value to the state object
      * @param {string} path - Dot-notation path (e.g., 'filters.minLap' or 'lapTime.fuelAdjust')
@@ -2582,6 +3206,13 @@
       // Restore UI elements from appState
       restoreStateToUI();
 
+      initializeSpoilerStateFromCookie();
+      setupSpoilerEventListeners();
+      if (!spoilerDecisionResolved) {
+        openSpoilerOverlay();
+      }
+      updateSpoilerModeButtonState();
+
       initTabNavigation();
 
       // Set up reload data button
@@ -2609,7 +3240,7 @@
             console.warn("Papa Parse errors:", results.errors);
           }
 
-          allRows = (results.data || []).filter(row =>
+          allRowsRaw = (results.data || []).filter(row =>
             row.year !== undefined &&
             row.round_no !== undefined &&
             row.meeting_name !== undefined &&
@@ -2617,44 +3248,23 @@
             String(row.year || "").trim() !== "2018"
           );
 
-          if (!allRows.length) {
+          if (!allRowsRaw.length) {
             statusMessage.textContent = "No usable rows found";
             return;
           }
 
-          indexSessions(allRows);
+          indexSessions(allRowsRaw, fullSessionsByKey);
+          rawDataReady = true;
+          const prefs = getSpoilerPreferenceValues();
+          populateSpoilerSeasonOptions(prefs.season, prefs.gp, prefs.sessionType);
 
-          // If we have a session to restore, mark as restoring BEFORE building dropdowns
-          // This prevents the dropdown onChange handlers from overwriting appState
-          const shouldRestore = appState.session.season || appState.session.gp || appState.session.sessionType;
+          const shouldRestore = Boolean(appState.session.season || appState.session.gp || appState.session.sessionType);
+          pendingSessionRestore = shouldRestore;
           if (shouldRestore) {
             window.permalinkSession = { isRestoring: true };
           }
 
-          UIHelpers.populateSeasons(seasonSel, sessionsByKey, {
-            // onChange: onSeasonChange
-          });
-
-          // Restore session from appState if available
-          if (appState.session.season) {
-            const season = appState.session.season;
-            // Set season dropdown - this will trigger onSeasonChange which handles the rest
-            const seasonOption = seasonSel.querySelector(`option[value="${season}"]`);
-            if (seasonOption) {
-              seasonSel.value = season;
-            } else {
-              console.warn('Season not found in dropdown:', season);
-            }
-          };
-
-          onSeasonChange();
-
-          // Clear restoration flag after explicit restoration completes
-          if (window.permalinkSession && window.permalinkSession.isRestoring) {
-            window.permalinkSession.isRestoring = false;
-          }
-
-          statusMessage.textContent = `${allRows.length} laps loaded`;
+          maybeInitializeAfterPrereqs();
         },
         error: function (err) {
           console.error("Papa Parse error:", err);
@@ -2667,8 +3277,8 @@
       sessionSel.addEventListener("change", onSessionChange);
     }
 
-    function indexSessions(rows) {
-      sessionsByKey.clear();
+    function indexSessions(rows, targetMap = sessionsByKey) {
+      targetMap.clear();
 
       rows.forEach(r => {
         const year = String(r.year || "").trim();
@@ -2679,8 +3289,8 @@
         if (!year || !round || !meeting || !sessionType || !circuit) return;
 
         const key = `${year}||${round}||${meeting}||${sessionType}`;
-        if (!sessionsByKey.has(key)) {
-          sessionsByKey.set(key, {
+        if (!targetMap.has(key)) {
+          targetMap.set(key, {
             year,
             round_no: round,
             meeting_name: meeting,
