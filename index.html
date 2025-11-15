@@ -1518,8 +1518,62 @@
 
     <!-- Fuel Effect Panel -->
     <div id="fuel-effect-panel" class="content-panel">
-      <div style="display: flex; justify-content: center; margin-bottom: 16px;">
-        <div style="width: 60%;">
+      <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+        <!-- LEFT: Filters -->
+        <div style="flex: 0 0 400px;">
+          <!-- Lap Filters -->
+          <div class="filter-panel" style="margin-bottom: 16px;">
+            <div class="filters-title">Lap Filters</div>
+            <div class="filters-grid" style="grid-template-columns: 1fr;">
+              <div class="filter-item">
+                <div class="filter-label">Laps to Discard at Start of Race</div>
+                <input type="number" id="fuelEffectFilterMinLap" value="1" min="0">
+              </div>
+              <div class="filter-item">
+                <div class="filter-label">Laps to Discard at End of Race</div>
+                <input type="number" id="fuelEffectFilterEndLaps" value="1" min="0">
+              </div>
+              <div class="filter-item">
+                <div class="filter-label">Laps to Discard at Start of Stint</div>
+                <input type="number" id="fuelEffectFilterMinStintLap" value="0" min="0">
+              </div>
+              <div class="filter-item">
+                <div class="filter-label">Min Distance to Car Ahead</div>
+                <input type="number" id="fuelEffectFilterMinDist" value="3" min="0" step="0.1">
+              </div>
+            </div>
+          </div>
+
+          <!-- Include Filters -->
+          <div class="filter-panel">
+            <div class="filters-title">Include</div>
+            <div class="exclude-checkboxes">
+              <div class="checkbox-group">
+                <input type="checkbox" id="fuelEffectFilterIncludeLapped" checked>
+                <label for="fuelEffectFilterIncludeLapped">Lapped</label>
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" id="fuelEffectFilterIncludeRetired" checked>
+                <label for="fuelEffectFilterIncludeRetired">Retired</label>
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" id="fuelEffectFilterRainfall">
+                <label for="fuelEffectFilterRainfall">Rainfall</label>
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" id="fuelEffectFilterSafetyCar">
+                <label for="fuelEffectFilterSafetyCar">Safety Car</label>
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" id="fuelEffectFilterPitLaps">
+                <label for="fuelEffectFilterPitLaps">Pit Laps</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Chart and Coefficients -->
+        <div style="flex: 1;">
           <div id="fuelEffectChartContainer" style="width: 100%; height: 400px; display: none;"></div>
           <div id="fuelEffectCoefficientsContainer" style="display: none; padding: 12px 16px; background: rgba(0, 224, 255, 0.03); border-radius: 8px; border: 1px solid var(--border-color); margin-top: 8px;">
             <div style="font-size: 11px; font-weight: 600; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">Linear Fit Coefficients (y = mx)</div>
@@ -1528,56 +1582,7 @@
         </div>
       </div>
 
-      <div class="lap-time-filters">
-        <div class="filter-panel">
-          <div class="filters-title">Lap Filters</div>
-          <div class="filters-grid">
-            <div class="filter-item">
-              <div class="filter-label">Laps to Discard at Start of Race</div>
-              <input type="number" id="fuelEffectFilterMinLap" value="1" min="0">
-            </div>
-            <div class="filter-item">
-              <div class="filter-label">Laps to Discard at End of Race</div>
-              <input type="number" id="fuelEffectFilterEndLaps" value="1" min="0">
-            </div>
-            <div class="filter-item">
-              <div class="filter-label">Laps to Discard at Start of Stint</div>
-              <input type="number" id="fuelEffectFilterMinStintLap" value="0" min="0">
-            </div>
-            <div class="filter-item">
-              <div class="filter-label">Min Distance to Car Ahead</div>
-              <input type="number" id="fuelEffectFilterMinDist" value="3" min="0" step="0.1">
-            </div>
-          </div>
-        </div>
-
-        <div class="filter-panel" style="grid-column: span 2;">
-          <div class="filters-title">Include</div>
-          <div class="exclude-checkboxes">
-            <div class="checkbox-group">
-              <input type="checkbox" id="fuelEffectFilterIncludeLapped" checked>
-              <label for="fuelEffectFilterIncludeLapped">Lapped</label>
-            </div>
-            <div class="checkbox-group">
-              <input type="checkbox" id="fuelEffectFilterIncludeRetired" checked>
-              <label for="fuelEffectFilterIncludeRetired">Retired</label>
-            </div>
-            <div class="checkbox-group">
-              <input type="checkbox" id="fuelEffectFilterRainfall">
-              <label for="fuelEffectFilterRainfall">Rainfall</label>
-            </div>
-            <div class="checkbox-group">
-              <input type="checkbox" id="fuelEffectFilterSafetyCar">
-              <label for="fuelEffectFilterSafetyCar">Safety Car</label>
-            </div>
-            <div class="checkbox-group">
-              <input type="checkbox" id="fuelEffectFilterPitLaps">
-              <label for="fuelEffectFilterPitLaps">Pit Laps</label>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <!-- BOTTOM: Table -->
       <div id="fuelEffectGroupsTableContainer"></div>
     </div>
 
