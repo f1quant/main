@@ -2326,71 +2326,7 @@
      * Called after loading state from URL or storage
      */
     function restoreStateToUI() {
-      // Shared filters
-      const filterMinLap = document.getElementById('filterMinLap');
-      const filterEndLaps = document.getElementById('filterEndLaps');
-      const filterMinStintLap = document.getElementById('filterMinStintLap');
-      const filterMinDist = document.getElementById('filterMinDist');
-
-      if (filterMinLap) filterMinLap.value = appState.filters.minLap;
-      if (filterEndLaps) filterEndLaps.value = appState.filters.endLaps;
-      if (filterMinStintLap) filterMinStintLap.value = appState.filters.minStintLap;
-      if (filterMinDist) filterMinDist.value = appState.filters.minDist;
-
-      // Checkboxes
-      const filterRainfall = document.getElementById('filterRainfall');
-      const filterSafetyCar = document.getElementById('filterSafetyCar');
-      const filterPitLaps = document.getElementById('filterPitLaps');
-      const filterIncludeLapped = document.getElementById('filterIncludeLapped');
-      const filterIncludeRetired = document.getElementById('filterIncludeRetired');
-
-      if (filterRainfall) filterRainfall.checked = appState.filters.rainfall;
-      if (filterSafetyCar) filterSafetyCar.checked = appState.filters.safetyCar;
-      if (filterPitLaps) filterPitLaps.checked = appState.filters.pitLaps;
-      if (filterIncludeLapped) filterIncludeLapped.checked = appState.filters.includeLapped;
-      if (filterIncludeRetired) filterIncludeRetired.checked = appState.filters.includeRetired;
-
-      // Tyre deg tab filters (synced copies)
-      const tyreDegFilterMinLap = document.getElementById('tyreDegFilterMinLap');
-      const tyreDegFilterEndLaps = document.getElementById('tyreDegFilterEndLaps');
-      const tyreDegFilterMinStintLap = document.getElementById('tyreDegFilterMinStintLap');
-      const tyreDegFilterMinDist = document.getElementById('tyreDegFilterMinDist');
-      const tyreDegFilterRainfall = document.getElementById('tyreDegFilterRainfall');
-      const tyreDegFilterSafetyCar = document.getElementById('tyreDegFilterSafetyCar');
-      const tyreDegFilterPitLaps = document.getElementById('tyreDegFilterPitLaps');
-      const tyreDegFilterIncludeLapped = document.getElementById('tyreDegFilterIncludeLapped');
-      const tyreDegFilterIncludeRetired = document.getElementById('tyreDegFilterIncludeRetired');
-
-      if (tyreDegFilterMinLap) tyreDegFilterMinLap.value = appState.filters.minLap;
-      if (tyreDegFilterEndLaps) tyreDegFilterEndLaps.value = appState.filters.endLaps;
-      if (tyreDegFilterMinStintLap) tyreDegFilterMinStintLap.value = appState.filters.minStintLap;
-      if (tyreDegFilterMinDist) tyreDegFilterMinDist.value = appState.filters.minDist;
-      if (tyreDegFilterRainfall) tyreDegFilterRainfall.checked = appState.filters.rainfall;
-      if (tyreDegFilterSafetyCar) tyreDegFilterSafetyCar.checked = appState.filters.safetyCar;
-      if (tyreDegFilterPitLaps) tyreDegFilterPitLaps.checked = appState.filters.pitLaps;
-      if (tyreDegFilterIncludeLapped) tyreDegFilterIncludeLapped.checked = appState.filters.includeLapped;
-      if (tyreDegFilterIncludeRetired) tyreDegFilterIncludeRetired.checked = appState.filters.includeRetired;
-
-      // Fuel effect tab filters (synced copies)
-      const fuelEffectFilterMinLap = document.getElementById('fuelEffectFilterMinLap');
-      const fuelEffectFilterEndLaps = document.getElementById('fuelEffectFilterEndLaps');
-      const fuelEffectFilterMinStintLap = document.getElementById('fuelEffectFilterMinStintLap');
-      const fuelEffectFilterMinDist = document.getElementById('fuelEffectFilterMinDist');
-      const fuelEffectFilterRainfall = document.getElementById('fuelEffectFilterRainfall');
-      const fuelEffectFilterSafetyCar = document.getElementById('fuelEffectFilterSafetyCar');
-      const fuelEffectFilterPitLaps = document.getElementById('fuelEffectFilterPitLaps');
-      const fuelEffectFilterIncludeLapped = document.getElementById('fuelEffectFilterIncludeLapped');
-      const fuelEffectFilterIncludeRetired = document.getElementById('fuelEffectFilterIncludeRetired');
-
-      if (fuelEffectFilterMinLap) fuelEffectFilterMinLap.value = appState.filters.minLap;
-      if (fuelEffectFilterEndLaps) fuelEffectFilterEndLaps.value = appState.filters.endLaps;
-      if (fuelEffectFilterMinStintLap) fuelEffectFilterMinStintLap.value = appState.filters.minStintLap;
-      if (fuelEffectFilterMinDist) fuelEffectFilterMinDist.value = appState.filters.minDist;
-      if (fuelEffectFilterRainfall) fuelEffectFilterRainfall.checked = appState.filters.rainfall;
-      if (fuelEffectFilterSafetyCar) fuelEffectFilterSafetyCar.checked = appState.filters.safetyCar;
-      if (fuelEffectFilterPitLaps) fuelEffectFilterPitLaps.checked = appState.filters.pitLaps;
-      if (fuelEffectFilterIncludeLapped) fuelEffectFilterIncludeLapped.checked = appState.filters.includeLapped;
-      if (fuelEffectFilterIncludeRetired) fuelEffectFilterIncludeRetired.checked = appState.filters.includeRetired;
+      renderSharedFiltersFromState();
 
       // Pace model / Lap time sliders
       const degHard = document.getElementById('degHard');
@@ -3932,15 +3868,6 @@
 
     // Set up lap time filter listeners
     function setupLapTimeFilterListeners() {
-      document.getElementById("filterMinLap").addEventListener("input", onLapTimeFilterChange);
-      document.getElementById("filterEndLaps").addEventListener("input", onLapTimeFilterChange);
-      document.getElementById("filterMinStintLap").addEventListener("input", onLapTimeFilterChange);
-      document.getElementById("filterMinDist").addEventListener("input", onLapTimeFilterChange);
-      document.getElementById("filterRainfall").addEventListener("change", onLapTimeFilterChange);
-      document.getElementById("filterSafetyCar").addEventListener("change", onLapTimeFilterChange);
-      document.getElementById("filterPitLaps").addEventListener("change", onLapTimeFilterChange);
-      document.getElementById('filterIncludeLapped').addEventListener('change', onLapTimeFilterChange);
-      document.getElementById('filterIncludeRetired').addEventListener('change', onLapTimeFilterChange);
       document.getElementById('degHard').addEventListener('input', function() {
         const value = parseFloat(this.value);
         document.getElementById('degHardValue').textContent = value.toFixed(3);
@@ -4182,6 +4109,104 @@
         for (const row of sorted.slice(0, minStintLap)) toRemove.add(row);
       }
       return filteredRows.filter(row => !toRemove.has(row));
+    }
+
+    const SHARED_FILTER_CONFIG = {
+      minLap: {
+        ids: ['filterMinLap', 'tyreDegFilterMinLap', 'fuelEffectFilterMinLap'],
+        type: 'int'
+      },
+      endLaps: {
+        ids: ['filterEndLaps', 'tyreDegFilterEndLaps', 'fuelEffectFilterEndLaps'],
+        type: 'int'
+      },
+      minStintLap: {
+        ids: ['filterMinStintLap', 'tyreDegFilterMinStintLap', 'fuelEffectFilterMinStintLap'],
+        type: 'int'
+      },
+      minDist: {
+        ids: ['filterMinDist', 'tyreDegFilterMinDist', 'fuelEffectFilterMinDist'],
+        type: 'float'
+      },
+      rainfall: {
+        ids: ['filterRainfall', 'tyreDegFilterRainfall', 'fuelEffectFilterRainfall'],
+        type: 'bool'
+      },
+      safetyCar: {
+        ids: ['filterSafetyCar', 'tyreDegFilterSafetyCar', 'fuelEffectFilterSafetyCar'],
+        type: 'bool'
+      },
+      pitLaps: {
+        ids: ['filterPitLaps', 'tyreDegFilterPitLaps', 'fuelEffectFilterPitLaps'],
+        type: 'bool'
+      },
+      includeLapped: {
+        ids: ['filterIncludeLapped', 'tyreDegFilterIncludeLapped', 'fuelEffectFilterIncludeLapped'],
+        type: 'bool'
+      },
+      includeRetired: {
+        ids: ['filterIncludeRetired', 'tyreDegFilterIncludeRetired', 'fuelEffectFilterIncludeRetired'],
+        type: 'bool'
+      }
+    };
+
+    function formatSharedFilterValue(value) {
+      if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : '';
+      }
+      return value ?? '';
+    }
+
+    function renderSharedFiltersFromState() {
+      Object.entries(SHARED_FILTER_CONFIG).forEach(([key, config]) => {
+        const value = appState.filters[key];
+        config.ids.forEach(id => {
+          const element = document.getElementById(id);
+          if (!element) return;
+          if (config.type === 'bool') {
+            element.checked = Boolean(value);
+          } else {
+            element.value = formatSharedFilterValue(value);
+          }
+        });
+      });
+    }
+
+    function handleSharedFiltersChange() {
+      renderSharedFiltersFromState();
+
+      if (lapTimeCurrentSessionRows && lapTimeCurrentSessionRows.length > 0) {
+        onLapTimeFilterChange();
+      }
+
+      if (currentSessionData && currentSessionData.length > 0) {
+        processTyreDegData(currentSessionData);
+        const filteredFuelEffectRows = applyLapFilters(currentSessionData);
+        displayFuelEffectGroupsTable(filteredFuelEffectRows);
+      }
+    }
+
+    function setupSharedFilterStateSync() {
+      Object.entries(SHARED_FILTER_CONFIG).forEach(([key, config]) => {
+        config.ids.forEach(id => {
+          const element = document.getElementById(id);
+          if (!element) return;
+          const eventType = config.type === 'bool' ? 'change' : 'input';
+          element.addEventListener(eventType, () => {
+            const rawValue = config.type === 'bool'
+              ? element.checked
+              : config.type === 'float'
+                ? parseFloat(element.value)
+                : parseInt(element.value, 10);
+            const previousValue = appState.filters[key];
+            if (Object.is(previousValue, rawValue)) {
+              return;
+            }
+            saveToState(`filters.${key}`, rawValue);
+            handleSharedFiltersChange();
+          });
+        });
+      });
     }
 
     /**
@@ -5200,12 +5225,7 @@
 
     // Set up filter listeners for tyre deg panel
     function setupTyreDegFilterListeners() {
-      const filterIds = [
-        'tyreDegFilterMinLap', 'tyreDegFilterEndLaps', 'tyreDegFilterMinStintLap', 'tyreDegFilterMinDist',
-        'tyreDegFilterMinRows', 'tyreDegFilterMinCorr', 'tyreDegFilterRainfall',
-        'tyreDegFilterSafetyCar', 'tyreDegFilterPitLaps', 'tyreDegFilterIncludeLapped',
-        'tyreDegFilterIncludeRetired'
-      ];
+      const filterIds = ['tyreDegFilterMinRows', 'tyreDegFilterMinCorr'];
 
       filterIds.forEach(id => {
         const el = document.getElementById(id);
@@ -5229,7 +5249,25 @@
       const slider = document.getElementById('tyreDegFuelEffectSlider');
       const value = document.getElementById('tyreDegFuelEffectValue');
       slider.addEventListener('input', function() {
-        value.textContent = parseFloat(this.value).toFixed(3);
+        const numericValue = parseFloat(this.value);
+        value.textContent = numericValue.toFixed(3);
+
+        const fuelEffectInput = document.getElementById('fuelEffect');
+        if (fuelEffectInput) {
+          fuelEffectInput.value = numericValue;
+          const lapTimeFuelEffectValue = document.getElementById('fuelEffectValue');
+          if (lapTimeFuelEffectValue) {
+            lapTimeFuelEffectValue.textContent = numericValue.toFixed(3);
+          }
+        }
+
+        const calculatorFuelEffect = document.getElementById('calculatorFuelEffect');
+        if (calculatorFuelEffect) {
+          calculatorFuelEffect.value = numericValue;
+        }
+
+        saveToState('paceModel.fuelEffect', numericValue);
+
         if (currentSessionData && currentSessionData.length > 0) {
           processTyreDegData(currentSessionData);
         }
@@ -5247,22 +5285,6 @@
     }
 
     setupTyreDegFilterListeners();
-
-    // Generic helper to sync checkbox groups across multiple tabs
-    function syncCheckboxGroup(ids, stateKey) {
-      const elements = ids.map(id => document.getElementById(id)).filter(Boolean);
-      elements.forEach(el => {
-        el.addEventListener('change', function() {
-          const checked = this.checked;
-          elements.forEach(other => {
-            if (other !== this) other.checked = checked;
-          });
-          if (stateKey) {
-            saveToState(stateKey, checked);
-          }
-        });
-      });
-    }
 
     // Generic helper for "select all" checkbox behavior in tables
     function attachSelectAllCheckbox({
@@ -5389,150 +5411,7 @@
       });
     }
 
-    // Sync common inputs between lap time and tyre deg tabs
-    function syncSharedFilters() {
-      // Fuel Effect: sync values between lap time (number input) and tyre deg (range slider)
-      const tyreDegFuelEffectSlider = document.getElementById('tyreDegFuelEffectSlider');
-      const tyreDegFuelEffectValue = document.getElementById('tyreDegFuelEffectValue');
-      const fuelEffectInput = document.getElementById('fuelEffect');
-
-      // Note: fuelEffectInput listener is already set up in the lap time panel setup (line ~3897)
-      // We only need to set up the tyre deg slider listener here
-
-      tyreDegFuelEffectSlider.addEventListener('input', function() {
-        const value = parseFloat(this.value);
-        // Update tyre deg display
-        tyreDegFuelEffectValue.textContent = value.toFixed(3);
-        // Sync to lap time slider (doesn't trigger input event)
-        fuelEffectInput.value = value;
-        const fuelEffectValue = document.getElementById('fuelEffectValue');
-        if (fuelEffectValue) fuelEffectValue.textContent = value.toFixed(3);
-        // Sync to calculator tab
-        const calculatorFuelEffect = document.getElementById('calculatorFuelEffect');
-        if (calculatorFuelEffect) calculatorFuelEffect.value = value;
-        saveToState('paceModel.fuelEffect', value);
-      });
-
-      // Laps to Discard at Start
-      const filterMinLap = document.getElementById('filterMinLap');
-      const tyreDegFilterMinLap = document.getElementById('tyreDegFilterMinLap');
-      const fuelEffectFilterMinLap = document.getElementById('fuelEffectFilterMinLap');
-
-      filterMinLap.addEventListener('input', function() {
-        tyreDegFilterMinLap.value = this.value;
-        fuelEffectFilterMinLap.value = this.value;
-        saveToState('filters.minLap', parseInt(this.value));
-      });
-
-      tyreDegFilterMinLap.addEventListener('input', function() {
-        filterMinLap.value = this.value;
-        fuelEffectFilterMinLap.value = this.value;
-        saveToState('filters.minLap', parseInt(this.value));
-      });
-
-      fuelEffectFilterMinLap.addEventListener('input', function() {
-        filterMinLap.value = this.value;
-        tyreDegFilterMinLap.value = this.value;
-        saveToState('filters.minLap', parseInt(this.value));
-      });
-
-      // Laps to Discard at End of Race
-      const filterEndLaps = document.getElementById('filterEndLaps');
-      const tyreDegFilterEndLaps = document.getElementById('tyreDegFilterEndLaps');
-      const fuelEffectFilterEndLaps = document.getElementById('fuelEffectFilterEndLaps');
-
-      filterEndLaps.addEventListener('input', function() {
-        tyreDegFilterEndLaps.value = this.value;
-        fuelEffectFilterEndLaps.value = this.value;
-        saveToState('filters.endLaps', parseInt(this.value));
-      });
-
-      tyreDegFilterEndLaps.addEventListener('input', function() {
-        filterEndLaps.value = this.value;
-        fuelEffectFilterEndLaps.value = this.value;
-        saveToState('filters.endLaps', parseInt(this.value));
-      });
-
-      fuelEffectFilterEndLaps.addEventListener('input', function() {
-        filterEndLaps.value = this.value;
-        tyreDegFilterEndLaps.value = this.value;
-        saveToState('filters.endLaps', parseInt(this.value));
-      });
-
-      // Laps to Discard at Start of Stint
-      const filterMinStintLap = document.getElementById('filterMinStintLap');
-      const tyreDegFilterMinStintLap = document.getElementById('tyreDegFilterMinStintLap');
-      const fuelEffectFilterMinStintLap = document.getElementById('fuelEffectFilterMinStintLap');
-
-      filterMinStintLap.addEventListener('input', function() {
-        tyreDegFilterMinStintLap.value = this.value;
-        fuelEffectFilterMinStintLap.value = this.value;
-        saveToState('filters.minStintLap', parseInt(this.value));
-      });
-
-      tyreDegFilterMinStintLap.addEventListener('input', function() {
-        filterMinStintLap.value = this.value;
-        fuelEffectFilterMinStintLap.value = this.value;
-        saveToState('filters.minStintLap', parseInt(this.value));
-      });
-
-      fuelEffectFilterMinStintLap.addEventListener('input', function() {
-        filterMinStintLap.value = this.value;
-        tyreDegFilterMinStintLap.value = this.value;
-        saveToState('filters.minStintLap', parseInt(this.value));
-      });
-
-      // Min Distance to Car Ahead
-      const filterMinDist = document.getElementById('filterMinDist');
-      const tyreDegFilterMinDist = document.getElementById('tyreDegFilterMinDist');
-      const fuelEffectFilterMinDist = document.getElementById('fuelEffectFilterMinDist');
-
-      filterMinDist.addEventListener('input', function() {
-        tyreDegFilterMinDist.value = this.value;
-        fuelEffectFilterMinDist.value = this.value;
-        saveToState('filters.minDist', parseFloat(this.value));
-      });
-
-      tyreDegFilterMinDist.addEventListener('input', function() {
-        filterMinDist.value = this.value;
-        fuelEffectFilterMinDist.value = this.value;
-        saveToState('filters.minDist', parseFloat(this.value));
-      });
-
-      fuelEffectFilterMinDist.addEventListener('input', function() {
-        filterMinDist.value = this.value;
-        tyreDegFilterMinDist.value = this.value;
-        saveToState('filters.minDist', parseFloat(this.value));
-      });
-
-      // Sync checkbox groups across tabs using helper
-      syncCheckboxGroup(
-        ['filterRainfall', 'tyreDegFilterRainfall', 'fuelEffectFilterRainfall'],
-        'filters.rainfall'
-      );
-
-      syncCheckboxGroup(
-        ['filterSafetyCar', 'tyreDegFilterSafetyCar', 'fuelEffectFilterSafetyCar'],
-        'filters.safetyCar'
-      );
-
-      syncCheckboxGroup(
-        ['filterPitLaps', 'tyreDegFilterPitLaps', 'fuelEffectFilterPitLaps'],
-        'filters.pitLaps'
-      );
-
-      syncCheckboxGroup(
-        ['filterIncludeLapped', 'tyreDegFilterIncludeLapped', 'fuelEffectFilterIncludeLapped'],
-        'filters.includeLapped'
-      );
-
-      syncCheckboxGroup(
-        ['filterIncludeRetired', 'tyreDegFilterIncludeRetired', 'fuelEffectFilterIncludeRetired'],
-        'filters.includeRetired'
-      );
-    }
-
-    syncSharedFilters();
+    setupSharedFilterStateSync();
 
     // Set up document-level click listener for closing dropdowns
     document.addEventListener('click', function(e) {
@@ -6477,73 +6356,6 @@
     let fuelEffectFilteredGroups = new Map(); // Store filtered groups for context menu filtering
     let fuelEffectPreviousFilteredKeys = []; // Remember which keys were visible last time
     const fuelEffectDropdownState = { dropdown: null, column: null };
-
-    function setupFuelEffectFilterListeners() {
-      document.getElementById('fuelEffectFilterMinLap').addEventListener('input', () => {
-        if (currentSessionData && currentSessionData.length > 0) {
-          const filteredRows = applyLapFilters(currentSessionData);
-          displayFuelEffectGroupsTable(filteredRows);
-        }
-      });
-
-      document.getElementById('fuelEffectFilterEndLaps').addEventListener('input', () => {
-        if (currentSessionData && currentSessionData.length > 0) {
-          const filteredRows = applyLapFilters(currentSessionData);
-          displayFuelEffectGroupsTable(filteredRows);
-        }
-      });
-
-      document.getElementById('fuelEffectFilterMinStintLap').addEventListener('input', () => {
-        if (currentSessionData && currentSessionData.length > 0) {
-          const filteredRows = applyLapFilters(currentSessionData);
-          displayFuelEffectGroupsTable(filteredRows);
-        }
-      });
-
-      document.getElementById('fuelEffectFilterMinDist').addEventListener('input', () => {
-        if (currentSessionData && currentSessionData.length > 0) {
-          const filteredRows = applyLapFilters(currentSessionData);
-          displayFuelEffectGroupsTable(filteredRows);
-        }
-      });
-
-      document.getElementById('fuelEffectFilterRainfall').addEventListener('change', () => {
-        if (currentSessionData && currentSessionData.length > 0) {
-          const filteredRows = applyLapFilters(currentSessionData);
-          displayFuelEffectGroupsTable(filteredRows);
-        }
-      });
-
-      document.getElementById('fuelEffectFilterSafetyCar').addEventListener('change', () => {
-        if (currentSessionData && currentSessionData.length > 0) {
-          const filteredRows = applyLapFilters(currentSessionData);
-          displayFuelEffectGroupsTable(filteredRows);
-        }
-      });
-
-      document.getElementById('fuelEffectFilterPitLaps').addEventListener('change', () => {
-        if (currentSessionData && currentSessionData.length > 0) {
-          const filteredRows = applyLapFilters(currentSessionData);
-          displayFuelEffectGroupsTable(filteredRows);
-        }
-      });
-
-      document.getElementById('fuelEffectFilterIncludeLapped').addEventListener('change', () => {
-        if (currentSessionData && currentSessionData.length > 0) {
-          const filteredRows = applyLapFilters(currentSessionData);
-          displayFuelEffectGroupsTable(filteredRows);
-        }
-      });
-
-      document.getElementById('fuelEffectFilterIncludeRetired').addEventListener('change', () => {
-        if (currentSessionData && currentSessionData.length > 0) {
-          const filteredRows = applyLapFilters(currentSessionData);
-          displayFuelEffectGroupsTable(filteredRows);
-        }
-      });
-    }
-
-    setupFuelEffectFilterListeners();
 
     // Handle window resize for fuel effect chart
     window.addEventListener('resize', () => {
