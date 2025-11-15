@@ -5101,8 +5101,18 @@ function updateSelectedDrivers(mutator, options = {}) {
         }
         renderCalculatorScProbTableFromState();
 
-        // Seed patterns from free optimization (no config available)
-        seedCalculatorPatternsFromFree();
+        const strategyInputs = document.querySelectorAll('.calculatorStrategyInput');
+        const hasStateStrategies = Array.isArray(appState.calculator.strategies) &&
+          appState.calculator.strategies.some(s => s && s.trim() !== '');
+        if (!hasStateStrategies) {
+          const emptyStrategies = Array.from(strategyInputs, () => '');
+          saveToState('calculator.strategies', emptyStrategies);
+        }
+        renderCalculatorStrategyInputsFromState();
+
+        if (!hasStateStrategies) {
+          seedCalculatorPatternsFromFree();
+        }
         runCalculatorSimulation();
       };
 
