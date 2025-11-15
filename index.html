@@ -6504,12 +6504,12 @@ function updateSelectedDrivers(mutator, options = {}) {
         driverLaps.get(driver).push(row);
       });
 
-  const events = [];
-  // derive session identifiers from the data so we can lookup driver metadata
-  const firstRow = rows.length > 0 ? rows[0] : null;
-  const sessYear = firstRow ? String(firstRow.year || "").trim() : '';
-  const sessRound = firstRow ? String(firstRow.round_no || "").trim() : '';
-  const sessType = firstRow ? String(firstRow.session_type || "").trim() : '';
+      const events = [];
+      // derive session identifiers from the data so we can lookup driver metadata
+      const firstRow = rows.length > 0 ? rows[0] : null;
+      const sessYear = firstRow ? String(firstRow.year || "").trim() : '';
+      const sessRound = firstRow ? String(firstRow.round_no || "").trim() : '';
+      const sessType = firstRow ? String(firstRow.session_type || "").trim() : '';
       driverLaps.forEach((rows, driver) => {
         const sortedRows = rows.slice().sort((a, b) => {
           const aLap = parseFloat(a.lap_LapNumber);
@@ -6546,16 +6546,19 @@ function updateSelectedDrivers(mutator, options = {}) {
           const afterLap = lapLookup.get(pitInLapNum + 2);
           const pitLoss = parseFloat(pitInLap.lap_LapTime) + parseFloat(pitOutLap.lap_LapTime) - (parseFloat(beforeLap.lap_LapTime) + parseFloat(afterLap.lap_LapTime));
 
-            events.push({
-              key: `${driver}||${pitInLapNum}||${pitIndex}`,
-              pitInLapNum,
-              driver,
-              pitIndex,
-              pitLoss,
-              year: sessYear,
-              round: sessRound,
-              sessionType: sessType
-            });
+          if (Number.isNaN(pitLoss)) continue;
+          if(pitLoss < 15.0 || pitLoss > 30.0) continue; // filter out unrealistic pit losses
+
+          events.push({
+            key: `${driver}||${pitInLapNum}||${pitIndex}`,
+            pitInLapNum,
+            driver,
+            pitIndex,
+            pitLoss,
+            year: sessYear,
+            round: sessRound,
+            sessionType: sessType
+          });
           pitIndex++;
         }
       });
