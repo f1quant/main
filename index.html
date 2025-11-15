@@ -1251,6 +1251,7 @@
       <button class="tab-button" data-tab="calculator">Calculator</button>
       <span class="status-message" id="statusMessage">Loading...</span>
       <button id="reloadDataBtn" type="button" title="Reload data from server">Reload Data</button>
+      <button id="copyPermalinkBtn" type="button" title="Copy permalink URL to clipboard">Copy Permalink</button>
     </div>
 
     <!-- Session Selector (shared across all tabs) -->
@@ -2151,27 +2152,44 @@
     }
 
     /**
-     * Debounced URL update
+     * No-op function - automatic URL updating is disabled
+     * Use generateAndCopyPermalink() button instead
      */
-    let urlUpdateTimeout = null;
     function updateURLFromState() {
-      clearTimeout(urlUpdateTimeout);
-      urlUpdateTimeout = setTimeout(() => {
-        const payload = buildPermalinkPayload();
-        const encoded = encodePermalinkState(payload);
+      // Disabled - manual permalink generation via button
+    }
 
-        if (encoded) {
-          const params = new URLSearchParams();
-          params.set('season', payload.session.season);
-          params.set('gp', payload.session.gp);
-          params.set('session', payload.session.session);
-          params.set('tab', payload.tab);
-          params.set('s', encoded);
+    /**
+     * Generate permalink URL and copy to clipboard
+     */
+    function generateAndCopyPermalink() {
+      const payload = buildPermalinkPayload();
+      const encoded = encodePermalinkState(payload);
 
-          const newURL = `${window.location.pathname}?${params.toString()}`;
-          window.history.replaceState({}, '', newURL);
-        }
-      }, 300); // 300ms debounce
+      if (encoded) {
+        const params = new URLSearchParams();
+        params.set('season', payload.session.season);
+        params.set('gp', payload.session.gp);
+        params.set('session', payload.session.session);
+        params.set('tab', payload.tab);
+        params.set('s', encoded);
+
+        const permalinkURL = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(permalinkURL).then(() => {
+          // Visual feedback
+          const btn = document.getElementById('copyPermalinkBtn');
+          const originalText = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => {
+            btn.textContent = originalText;
+          }, 1500);
+        }).catch(err => {
+          console.error('Failed to copy permalink:', err);
+          alert('Failed to copy permalink to clipboard');
+        });
+      }
     }
 
     /**
@@ -2676,6 +2694,10 @@
       reloadDataBtn.addEventListener('click', () => {
         DataCache.reloadData();
       });
+
+      // Set up copy permalink button
+      const copyPermalinkBtn = document.getElementById('copyPermalinkBtn');
+      copyPermalinkBtn.addEventListener('click', generateAndCopyPermalink);
 
       DriverInfo.load(loadMainCSV);
 
