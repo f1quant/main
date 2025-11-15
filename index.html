@@ -2917,25 +2917,6 @@
       };
     }
 
-    function serializeStateToPlainText(payload) {
-      const result = [];
-      function recurse(obj, prefix = '') {
-        Object.entries(obj).forEach(([key, value]) => {
-          if (value === undefined) return;
-          const path = prefix ? `${prefix}.${key}` : key;
-          if (value && typeof value === 'object' && !Array.isArray(value)) {
-            recurse(value, path);
-          } else if (Array.isArray(value)) {
-            result.push(`${path}=${JSON.stringify(value)}`);
-          } else {
-            result.push(`${path}=${value}`);
-          }
-        });
-      }
-      recurse(payload);
-      return result.join('&');
-    }
-
     function assignPathValue(target, path, value) {
       const keys = path.split('.');
       let obj = target;
@@ -2951,76 +2932,46 @@
       });
     }
 
-    function parsePlainTextState(encoded) {
-      const decoded = encoded;
-      const payload = {};
-      const items = decoded.split('&').filter(Boolean);
-      if (!items.length) return payload;
-      items.forEach(item => {
-        const idx = item.indexOf('=');
-        if (idx < 0) return;
-        const key = item.slice(0, idx);
-        let value = item.slice(idx + 1);
-        const isSessionSeason = key === 'session.season';
-        let parsedValue;
-        if ((value.startsWith('[') && value.endsWith(']')) ||
-            (value.startsWith('{') && value.endsWith('}'))) {
-          try {
-            parsedValue = JSON.parse(value);
-          } catch (_) {
-            parsedValue = value;
-          }
-        } else if (value === 'true' || value === 'false') {
-          parsedValue = value === 'true';
-        } else if (!isSessionSeason && value !== '' && !Number.isNaN(Number(value))) {
-          parsedValue = Number(value);
+    function flattenStateEntries(obj = {}, prefix = '', target = []) {
+      Object.entries(obj).forEach(([key, value]) => {
+        if (value === undefined) return;
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (Array.isArray(value)) {
+          target.push([path, JSON.stringify(value)]);
+        } else if (value && typeof value === 'object') {
+          flattenStateEntries(value, path, target);
         } else {
-          parsedValue = value;
+          target.push([path, String(value)]);
         }
-        assignPathValue(payload, key, parsedValue);
       });
-      return payload;
+      return target;
     }
 
-    function encodePermalinkState(payload) {
-      try {
-        const plainText = serializeStateToPlainText(payload);
-        if (!plainText) return '';
-        return encodeURIComponent(plainText);
-      } catch (e) {
-        console.error('Failed to encode permalink state:', e);
-        return null;
+    function parseStateValue(value) {
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      if ((value.startsWith('[') && value.endsWith(']')) ||
+          (value.startsWith('{') && value.endsWith('}'))) {
+        try {
+          return JSON.parse(value);
+        } catch (_) {
+          return value;
+        }
       }
+      if (value !== '' && !Number.isNaN(Number(value))) {
+        return Number(value);
+      }
+      return value;
     }
 
-    function decodePermalinkState(encoded) {
-      try {
-        const candidate = decodeURIComponent(encoded);
-        if (candidate.includes('=')) {
-          const overrides = parsePlainTextState(candidate);
-          const payload = {
-            v: overrides.v || 1,
-            session: overrides.session || { season: '', gp: '', session: '' },
-            tab: overrides.tab || 'strategy',
-            overrides
-          };
-          return payload;
-        }
-        let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-        while (base64.length % 4) {
-          base64 += '=';
-        }
-        const json = atob(base64);
-        const payload = JSON.parse(json);
-        if (payload.v !== 1) {
-          console.warn('Unsupported permalink version:', payload.v);
-          return null;
-        }
-        return payload;
-      } catch (e) {
-        console.error('Failed to decode permalink state:', e);
-        return null;
-      }
+    function collectOverridesFromParams(params) {
+      const overrides = {};
+      const ignored = new Set(['season', 'gp', 'session', 'tab', 's']);
+      params.forEach((value, key) => {
+        if (!key || ignored.has(key)) return;
+        assignPathValue(overrides, key, parseStateValue(value));
+      });
+      return overrides;
     }
 
     /**
@@ -3028,29 +2979,30 @@
      */
     function generateAndCopyPermalink() {
       const payload = buildPermalinkPayload();
-      const encoded = encodePermalinkState(payload);
+      const params = new URLSearchParams();
+      params.set('tab', payload.tab);
+      params.set('season', payload.session.season);
+      params.set('gp', payload.session.gp);
+      params.set('session', payload.session.sessionType);
 
-      if (encoded) {
-        const params = new URLSearchParams();
-        params.set('tab', payload.tab);
-        params.set('s', encoded);
+      const overrideEntries = flattenStateEntries(payload.overrides);
+      overrideEntries.forEach(([key, value]) => {
+        params.set(key, value);
+      });
 
-        const permalinkURL = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+      const permalinkURL = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 
-        // Copy to clipboard
-        navigator.clipboard.writeText(permalinkURL).then(() => {
-          // Visual feedback
-          const btn = document.getElementById('copyPermalinkBtn');
-          const originalText = btn.textContent;
-          btn.textContent = 'Copied!';
-          setTimeout(() => {
-            btn.textContent = originalText;
-          }, 1500);
-        }).catch(err => {
-          console.error('Failed to copy permalink:', err);
-          alert('Failed to copy permalink to clipboard');
-        });
-      }
+      navigator.clipboard.writeText(permalinkURL).then(() => {
+        const btn = document.getElementById('copyPermalinkBtn');
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 1500);
+      }).catch(err => {
+        console.error('Failed to copy permalink:', err);
+        alert('Failed to copy permalink to clipboard');
+      });
     }
 
     /**
@@ -3059,65 +3011,52 @@
     function loadStateFromURL() {
       const params = new URLSearchParams(window.location.search);
 
-      // Get simple params
       const season = params.get('season');
       const gp = params.get('gp');
       const session = params.get('session');
       const tab = params.get('tab');
-      const encoded = params.get('s');
 
-      // If we have encoded state, decode and apply it
-      if (encoded) {
-        const payload = decodePermalinkState(encoded);
-        if (payload && payload.overrides) {
-          // Merge overrides into appState (but keep Sets for now, we'll convert arrays to sets later)
-          const merged = deepMerge(defaultAppState, payload.overrides);
+      const overrides = collectOverridesFromParams(params);
+      if (Object.keys(overrides).length > 0) {
+        const merged = deepMerge(defaultAppState, overrides);
 
-          // Apply merged values to appState, converting arrays to sets where appropriate
-          Object.assign(appState.session, merged.session || {});
-          Object.assign(appState.filters, merged.filters || {});
-          Object.assign(appState.paceModel, merged.paceModel || {});
-          Object.assign(appState.raceTrace, merged.raceTrace || {});
-          Object.assign(appState.lapTime, merged.lapTime || {});
-          Object.assign(appState.calculator, merged.calculator || {});
+        Object.assign(appState.session, merged.session || {});
+        Object.assign(appState.filters, merged.filters || {});
+        Object.assign(appState.paceModel, merged.paceModel || {});
+        Object.assign(appState.raceTrace, merged.raceTrace || {});
+        Object.assign(appState.lapTime, merged.lapTime || {});
+        Object.assign(appState.calculator, merged.calculator || {});
 
-          // Handle tyre deg
-          if (merged.tyreDeg) {
-            Object.assign(appState.tyreDeg, merged.tyreDeg);
-            if (Array.isArray(merged.tyreDeg.selectedStints)) {
-              appState.tyreDeg.selectedStints = new Set(merged.tyreDeg.selectedStints);
-            }
+        if (merged.tyreDeg) {
+          Object.assign(appState.tyreDeg, merged.tyreDeg);
+          if (Array.isArray(merged.tyreDeg.selectedStints)) {
+            appState.tyreDeg.selectedStints = new Set(merged.tyreDeg.selectedStints);
           }
+        }
 
-          // Handle fuel effect
-          if (merged.fuelEffect) {
-            Object.assign(appState.fuelEffect, merged.fuelEffect);
-            if (Array.isArray(merged.fuelEffect.selectedRows)) {
-              appState.fuelEffect.selectedRows = new Set(merged.fuelEffect.selectedRows);
-            }
+        if (merged.fuelEffect) {
+          Object.assign(appState.fuelEffect, merged.fuelEffect);
+          if (Array.isArray(merged.fuelEffect.selectedRows)) {
+            appState.fuelEffect.selectedRows = new Set(merged.fuelEffect.selectedRows);
           }
+        }
 
-          // Handle pit loss selections
-          if (merged.pitLossTab) {
-            Object.assign(appState.pitLossTab, merged.pitLossTab);
-            if (Array.isArray(merged.pitLossTab.selectedKeys)) {
-              appState.pitLossTab.selectedKeys = new Set(merged.pitLossTab.selectedKeys);
-            }
+        if (merged.pitLossTab) {
+          Object.assign(appState.pitLossTab, merged.pitLossTab);
+          if (Array.isArray(merged.pitLossTab.selectedKeys)) {
+            appState.pitLossTab.selectedKeys = new Set(merged.pitLossTab.selectedKeys);
           }
+        }
 
-          // Handle selected drivers
-          if (Array.isArray(merged.selectedDrivers)) {
-            appState.selectedDrivers = new Set(merged.selectedDrivers);
-          }
+        if (Array.isArray(merged.selectedDrivers)) {
+          appState.selectedDrivers = new Set(merged.selectedDrivers);
+        }
 
-          // Handle tab
-          if (merged.currentActiveTab) {
-            appState.currentActiveTab = merged.currentActiveTab;
-          }
+        if (merged.currentActiveTab) {
+          appState.currentActiveTab = merged.currentActiveTab;
         }
       }
 
-      // Override with simple params if provided (for backwards compatibility and flexibility)
       if (season) appState.session.season = season;
       if (gp) appState.session.gp = gp;
       if (session) appState.session.sessionType = session;
