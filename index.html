@@ -3375,6 +3375,15 @@
     let replayStartSessionTime = 0; // Session time when play started
     let isProgrammaticSliderChange = false; // Flag to distinguish user vs code changes
     const UPDATE_INTERVAL = 33; // ~30fps when tab is active, throttled to ~1000ms in background
+    const ReplayTimelineContext = {
+      RACE: 'race',
+      QUALI: 'quali'
+    };
+    let replayTimelineContext = ReplayTimelineContext.RACE;
+    const replayTimelineTimes = {
+      race: null,
+      quali: null
+    };
 
     // ============================================================================
     // REPLAY EVENT EMITTER SYSTEM
@@ -3425,6 +3434,9 @@
       replayTimeline = [];
       timingInProgressLaps.clear();
       previousFilteredDataLength = 0;
+      replayTimelineTimes.race = null;
+      replayTimelineTimes.quali = null;
+      replayTimelineContext = getReplayContextForTab(appState.currentActiveTab);
     }
 
     function applyReplayLapTimeDefaults() {
@@ -3697,41 +3709,127 @@
       return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
-    function initializeReplaySlider() {
-      if (!replayConfig.enabled || !currentSessionDataUnfiltered || currentSessionDataUnfiltered.length === 0) {
-        return;
+    function getReplayContextForTab(tabName) {
+      return tabName === 'quali' ? ReplayTimelineContext.QUALI : ReplayTimelineContext.RACE;
+    }
+
+    function getRaceReplayBounds() {
+      if (!currentSessionDataUnfiltered || currentSessionDataUnfiltered.length === 0) {
+        return null;
       }
 
-      // Get min lap start time and max lap end time from UNFILTERED session data
-      const startTimes = currentSessionDataUnfiltered.map(r => parseFloat(r.lap_LapStartTime)).filter(t => !isNaN(t));
-      const endTimes = currentSessionDataUnfiltered.map(r => parseFloat(r.lap_Time)).filter(t => !isNaN(t));
+      const startTimes = currentSessionDataUnfiltered
+        .map(r => parseFloat(r.lap_LapStartTime))
+        .filter(t => Number.isFinite(t));
+      const endTimes = currentSessionDataUnfiltered
+        .map(r => parseFloat(r.lap_Time))
+        .filter(t => Number.isFinite(t));
 
-      if (startTimes.length === 0 || endTimes.length === 0) return;
+      if (startTimes.length === 0 || endTimes.length === 0) return null;
 
-      const minTime = Math.min(...startTimes);
-      const maxTime = Math.max(...endTimes);
+      return {
+        min: Math.min(...startTimes),
+        max: Math.max(...endTimes)
+      };
+    }
 
-      replaySlider.min = minTime;
-      replaySlider.max = maxTime;
+    function getQualiReplayBounds() {
+      if (!currentQualiDataUnfiltered || currentQualiDataUnfiltered.length === 0) {
+        return null;
+      }
 
-      // Set slider value with flag to prevent input event interference
+      const sectorTimes = [];
+      currentQualiDataUnfiltered.forEach(r => {
+        const s1 = parseFloat(r.lap_Sector1SessionTime);
+        const s2 = parseFloat(r.lap_Sector2SessionTime);
+        const s3 = parseFloat(r.lap_Sector3SessionTime);
+        if (Number.isFinite(s1)) sectorTimes.push(s1);
+        if (Number.isFinite(s2)) sectorTimes.push(s2);
+        if (Number.isFinite(s3)) sectorTimes.push(s3);
+      });
+
+      if (sectorTimes.length === 0) return null;
+
+      const min = Math.min(...sectorTimes);
+      const max = Math.max(...sectorTimes) + 60;
+      return { min, max };
+    }
+
+    function getReplayTimelineBounds(context) {
+      return context === ReplayTimelineContext.QUALI
+        ? getQualiReplayBounds()
+        : getRaceReplayBounds();
+    }
+
+    function updateReplayTimelineContext(tabName, options = {}) {
+      if (!replayConfig.enabled || !replaySlider) return false;
+
+      const context = getReplayContextForTab(tabName);
+      const prevContext = replayTimelineContext;
+      const contextChanged = context !== prevContext;
+
+      if (contextChanged && isPlaying) {
+        pauseReplay();
+      }
+
+      if (contextChanged) {
+        const prevValue = parseFloat(replaySlider.value);
+        if (prevContext === ReplayTimelineContext.QUALI) {
+          replayTimelineTimes.quali = Number.isFinite(prevValue) ? prevValue : replayTimelineTimes.quali;
+        } else {
+          replayTimelineTimes.race = Number.isFinite(prevValue) ? prevValue : replayTimelineTimes.race;
+        }
+      }
+
+      const bounds = getReplayTimelineBounds(context);
+      if (!bounds) return false;
+
+      const storedValue = context === ReplayTimelineContext.QUALI
+        ? replayTimelineTimes.quali
+        : replayTimelineTimes.race;
+      let nextValue = Number.isFinite(storedValue) ? storedValue : bounds.min;
+
+      if (nextValue < bounds.min) nextValue = bounds.min;
+      if (nextValue > bounds.max) nextValue = bounds.max;
+
       isProgrammaticSliderChange = true;
-      replaySlider.value = minTime;
+      replaySlider.min = bounds.min;
+      replaySlider.max = bounds.max;
+      replaySlider.value = nextValue;
       isProgrammaticSliderChange = false;
 
-      updateReplayTimeDisplay(minTime);
-      updateReplayLapDisplay(minTime);
-
-      // Apply time filter and reinitialize current tab with filtered data
+      replayTimelineContext = context;
+      updateReplayTimeDisplay(nextValue);
+      updateReplayLapDisplay(nextValue);
       applyReplayTimeFilter();
-      previousFilteredDataLength = currentSessionData ? currentSessionData.length : 0;
 
-      // Only initialize if there's actual data or if we have unfiltered data to work with
-      // (e.g., in replay mode at start with no completed laps but sectors available)
-      const hasAnyData = (currentSessionData && currentSessionData.length > 0) ||
-                         (currentSessionDataUnfiltered && currentSessionDataUnfiltered.length > 0);
+      if (context === ReplayTimelineContext.RACE) {
+        previousFilteredDataLength = currentSessionData ? currentSessionData.length : 0;
+      }
+
+      return true;
+    }
+
+    function getReplayLapRows() {
+      if (getReplayContextForTab(appState.currentActiveTab) === ReplayTimelineContext.QUALI) {
+        return currentQualiDataUnfiltered;
+      }
+      return currentSessionDataUnfiltered;
+    }
+
+    function initializeReplaySlider() {
+      if (!replayConfig.enabled) return;
+
+      const hasRaceData = currentSessionDataUnfiltered && currentSessionDataUnfiltered.length > 0;
+      const hasQualiData = currentQualiDataUnfiltered && currentQualiDataUnfiltered.length > 0;
+      if (!hasRaceData && !hasQualiData) return;
+
+      const updated = updateReplayTimelineContext(appState.currentActiveTab);
+      if (!updated) return;
+
+      const hasAnyData = hasRaceData || hasQualiData;
       if (hasAnyData) {
-        initializePanel(appState.currentActiveTab, currentSessionData);
+        initializePanel(appState.currentActiveTab, currentSessionData || []);
       }
     }
 
@@ -3745,17 +3843,18 @@
     }
 
     function calculateCurrentLap(currentTime) {
-      if (!currentSessionDataUnfiltered || currentSessionDataUnfiltered.length === 0) {
+      const lapRows = getReplayLapRows();
+      if (!lapRows || lapRows.length === 0) {
         return 1;
       }
 
       // Get scheduled laps for the session
-      const schedLaps = currentSessionDataUnfiltered.length > 0 ? parseInt(currentSessionDataUnfiltered[0].sched_laps) : null;
+      const schedLaps = lapRows.length > 0 ? parseInt(lapRows[0].sched_laps) : null;
 
       // Find the highest lap number where lap is completed (lap_Time < currentTime)
       let maxCompletedLap = 0;
 
-      for (const row of currentSessionDataUnfiltered) {
+      for (const row of lapRows) {
         // lap_Time is the session time at the end of the lap
         const lapEndTime = parseFloat(row.lap_Time);
         const lapNumber = parseInt(row.lap_LapNumber);
@@ -3784,7 +3883,7 @@
     }
 
     function applyReplayTimeFilter() {
-      if (!replayConfig.enabled || !currentSessionDataUnfiltered) {
+      if (!replayConfig.enabled) {
         // If replay mode is off, use unfiltered data
         currentSessionData = currentSessionDataUnfiltered;
         timingInProgressLaps.clear();
@@ -3793,6 +3892,24 @@
 
       const currentSliderTime = replaySlider ? parseFloat(replaySlider.value) : NaN;
       const replayTime = Number.isFinite(currentSliderTime) ? currentSliderTime : 0;
+      const context = getReplayContextForTab(appState.currentActiveTab);
+
+      if (context === ReplayTimelineContext.QUALI) {
+        replayTimelineTimes.quali = replayTime;
+        replayEventEmitter.emit(ReplayEvents.TIME_TICK, {
+          sessionData: currentSessionData || [],
+          replayTime
+        });
+        return;
+      }
+
+      replayTimelineTimes.race = replayTime;
+
+      if (!currentSessionDataUnfiltered) {
+        currentSessionData = currentSessionDataUnfiltered;
+        timingInProgressLaps.clear();
+        return;
+      }
 
       // Filter to only include laps completed before the replay time
       currentSessionData = currentSessionDataUnfiltered.filter(r => {
@@ -3866,15 +3983,17 @@
         const previousLength = previousFilteredDataLength;
         applyReplayTimeFilter();
 
-        // Detect if new laps appeared
-        const currentLength = currentSessionData ? currentSessionData.length : 0;
-        if (currentLength > previousLength) {
-          previousFilteredDataLength = currentLength;
-          // Emit LAP_COMPLETED event which will update all subscribed charts
-          replayEventEmitter.emit(ReplayEvents.LAP_COMPLETED, {
-            sessionData: currentSessionData,
-            replayTime: newSessionTime
-          });
+        // Detect if new laps appeared (race timeline only)
+        if (getReplayContextForTab(appState.currentActiveTab) === ReplayTimelineContext.RACE) {
+          const currentLength = currentSessionData ? currentSessionData.length : 0;
+          if (currentLength > previousLength) {
+            previousFilteredDataLength = currentLength;
+            // Emit LAP_COMPLETED event which will update all subscribed charts
+            replayEventEmitter.emit(ReplayEvents.LAP_COMPLETED, {
+              sessionData: currentSessionData,
+              replayTime: newSessionTime
+            });
+          }
         }
 
         // Pause at the end
@@ -3897,15 +4016,17 @@
       const previousLength = previousFilteredDataLength;
       applyReplayTimeFilter();
 
-      // Detect if new laps appeared
-      const currentLength = currentSessionData ? currentSessionData.length : 0;
-      if (currentLength > previousLength) {
-        previousFilteredDataLength = currentLength;
-        // Emit LAP_COMPLETED event which will update all subscribed charts
-        replayEventEmitter.emit(ReplayEvents.LAP_COMPLETED, {
-          sessionData: currentSessionData,
-          replayTime: newSessionTime
-        });
+      // Detect if new laps appeared (race timeline only)
+      if (getReplayContextForTab(appState.currentActiveTab) === ReplayTimelineContext.RACE) {
+        const currentLength = currentSessionData ? currentSessionData.length : 0;
+        if (currentLength > previousLength) {
+          previousFilteredDataLength = currentLength;
+          // Emit LAP_COMPLETED event which will update all subscribed charts
+          replayEventEmitter.emit(ReplayEvents.LAP_COMPLETED, {
+            sessionData: currentSessionData,
+            replayTime: newSessionTime
+          });
+        }
       }
       // setInterval handles the looping automatically
     }
@@ -4455,6 +4576,8 @@
 
       // Enable replay mode
       replayConfig.enabled = true;
+      replayTimelineTimes.race = null;
+      replayTimelineTimes.quali = null;
 
       // Apply spoiler filter to populate allRows from allRowsRaw
       applySpoilerFilter();
@@ -4694,7 +4817,9 @@
 
           // Refilter session data and refresh active panel
           applyReplayTimeFilter();
-          previousFilteredDataLength = currentSessionData ? currentSessionData.length : 0;
+          if (getReplayContextForTab(appState.currentActiveTab) === ReplayTimelineContext.RACE) {
+            previousFilteredDataLength = currentSessionData ? currentSessionData.length : 0;
+          }
 
           // Only update charts immediately for manual user scrubbing, not programmatic changes
           // During animation, the event emitter will handle updates
@@ -5277,6 +5402,9 @@
       }
 
       appState.currentActiveTab = tabName;
+      if (replayConfig.enabled) {
+        updateReplayTimelineContext(tabName);
+      }
 
       // Initialize panel if data is available
       if (currentSessionData) {
@@ -5699,6 +5827,7 @@
         qualiCache = null;
         currentQualiSessionType = 'Q';
         qualiPreviousCellStates = new Map();
+        replayTimelineTimes.quali = null;
         return;
       }
 
@@ -5723,6 +5852,11 @@
       );
       qualiCache = buildQualiCache(currentQualiDataUnfiltered);
       qualiPreviousCellStates = new Map();
+      replayTimelineTimes.quali = null;
+
+      if (replayConfig.enabled && appState.currentActiveTab === 'quali') {
+        updateReplayTimelineContext('quali');
+      }
     }
 
     function onSessionChange() {
