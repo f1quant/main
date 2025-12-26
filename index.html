@@ -613,7 +613,6 @@
     .quali-table .sticky-col-1 { left: 0; width: 46px; }
     .quali-table .sticky-col-2 { left: 46px; width: 78px; }
     .quali-table .sticky-col-3 { left: 124px; width: 72px; }
-    .quali-table .sticky-col-4 { left: 196px; width: 132px; }
 
     .quali-group-start {
       border-left: 1px solid #2f2f2f;
@@ -642,13 +641,6 @@
       font-weight: 700;
       letter-spacing: 0.2px;
       text-transform: uppercase;
-    }
-
-    .quali-status {
-      font-size: 10px;
-      text-transform: uppercase;
-      color: var(--muted-color);
-      text-align: left;
     }
 
     .quali-gap {
@@ -7285,31 +7277,6 @@
       return { lap: lapCell, s1: s1Cell, s2: s2Cell, s3: s3Cell };
     }
 
-    function getQualiStatus({ isReplay, activeLap, lastLap, isHotLap, isHotLast, hasAnyLap }) {
-      if (!isReplay) {
-        return hasAnyLap ? 'Finished lap' : 'In garage';
-      }
-
-      if (activeLap) {
-        if (isHotLap) return 'On hot lap';
-        if (!Number.isFinite(activeLap.lapTime)) {
-          if (Number.isFinite(activeLap.pitOutTime)) return 'Out lap';
-          if (Number.isFinite(activeLap.pitInTime)) return 'In lap';
-          return 'Out lap';
-        }
-        if (Number.isFinite(activeLap.pitInTime)) return 'In lap';
-        return 'Out lap';
-      }
-
-      if (lastLap) {
-        if (isHotLast) return 'Finished lap';
-        if (Number.isFinite(lastLap.pitInTime)) return 'In garage';
-        return 'In garage';
-      }
-
-      return 'In garage';
-    }
-
     function getQualiCellFlashClass(cellKey, cellState, nextStates) {
       const prev = qualiPreviousCellStates.get(cellKey);
       const currentKind = cellState?.kind || 'empty';
@@ -7409,20 +7376,13 @@
 
       const activeLapByDriver = new Map();
       const liveLapByDriver = new Map();
-      const lastLapByDriver = new Map();
       const hotLapByDriver = new Map();
-      const hotLastByDriver = new Map();
 
       if (isReplay) {
         qualiCache.lapsByDriver.forEach((laps, driver) => {
           const activeLap = findActiveLap(laps, replayTime);
           if (activeLap) {
             activeLapByDriver.set(driver, activeLap);
-          }
-
-          const lastLap = findLastLapBeforeTime(laps, replayTime);
-          if (lastLap) {
-            lastLapByDriver.set(driver, lastLap);
           }
 
           if (activeLap) {
@@ -7433,12 +7393,6 @@
               const liveDisplay = getLiveLapDisplay(activeLap, replayTime);
               liveLapByDriver.set(driver, liveDisplay);
             }
-          }
-
-          if (lastLap) {
-            const bestLap = qualiCache.bestLapByDriverSession.get(lastLap.session)?.get(driver);
-            const wasHot = Number.isFinite(lastLap.lapTime) && Number.isFinite(bestLap) && lastLap.lapTime <= bestLap + 2;
-            hotLastByDriver.set(driver, wasHot);
           }
         });
       }
@@ -7541,7 +7495,6 @@
       html += '<th class="sticky-col sticky-col-1" rowspan="2">Pos</th>';
       html += '<th class="sticky-col sticky-col-2" rowspan="2">Driver</th>';
       html += '<th class="sticky-col sticky-col-3" rowspan="2">Gap</th>';
-      html += '<th class="sticky-col sticky-col-4" rowspan="2">Status</th>';
       html += '<th colspan="4">Live Lap</th>';
       html += '<th colspan="4">Best Q3</th>';
       html += '<th colspan="4">Best Q2</th>';
@@ -7565,18 +7518,6 @@
           ? formatQualiDelta(bestLapCurrent - leaderLap)
           : '';
 
-        const activeLap = activeLapByDriver.get(driver);
-        const lastLap = lastLapByDriver.get(driver);
-        const hasAnyLap = qualiCache.lapsByDriver.get(driver)?.length > 0;
-        const status = getQualiStatus({
-          isReplay,
-          activeLap,
-          lastLap,
-          isHotLap,
-          isHotLast: hotLastByDriver.get(driver) === true,
-          hasAnyLap
-        });
-
         html += `<tr class="${rowClass}" data-driver="${driver}">`;
 
         html += `<td class="sticky-col sticky-col-1 quali-position">${position}</td>`;
@@ -7584,7 +7525,6 @@
         const driverColor = driverColors.get(driver) || '#888888';
         html += `<td class="sticky-col sticky-col-2"><div class="quali-driver"><span class="quali-driver-strip" style="background:${driverColor};"></span><span class="quali-driver-code">${driver}</span></div></td>`;
         html += `<td class="sticky-col sticky-col-3 quali-gap">${gap}</td>`;
-        html += `<td class="sticky-col sticky-col-4 quali-status">${status}</td>`;
 
         const liveLap = isReplay ? liveLapByDriver.get(driver) : null;
         const liveCells = isReplay && liveLap ? liveLap : null;
