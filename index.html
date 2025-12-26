@@ -7037,21 +7037,21 @@
         }
         lapsByDriver.get(driver).push(parsedRow);
 
-        if (validLap) {
-          if (Number.isFinite(lapTime)) {
-            const lapMap = ensureSessionMap(bestLapByDriverSession, session);
-            const existing = lapMap.get(driver);
-            if (!Number.isFinite(existing) || lapTime < existing) {
-              lapMap.set(driver, lapTime);
-            }
+        if (validLap && Number.isFinite(lapTime)) {
+          const lapMap = ensureSessionMap(bestLapByDriverSession, session);
+          const existing = lapMap.get(driver);
+          if (!Number.isFinite(existing) || lapTime < existing) {
+            lapMap.set(driver, lapTime);
           }
 
           const sessionMap = ensureSessionMap(bestFinalBySession, session);
           const bestEntry = ensureBestEntry(sessionMap, driver);
-          if (Number.isFinite(lapTime) && lapTime < bestEntry.lap) bestEntry.lap = lapTime;
-          if (Number.isFinite(s1) && s1 < bestEntry.s1) bestEntry.s1 = s1;
-          if (Number.isFinite(s2) && s2 < bestEntry.s2) bestEntry.s2 = s2;
-          if (Number.isFinite(s3) && s3 < bestEntry.s3) bestEntry.s3 = s3;
+          if (!Number.isFinite(bestEntry.lap) || lapTime < bestEntry.lap) {
+            bestEntry.lap = lapTime;
+            bestEntry.s1 = Number.isFinite(s1) ? s1 : null;
+            bestEntry.s2 = Number.isFinite(s2) ? s2 : null;
+            bestEntry.s3 = Number.isFinite(s3) ? s3 : null;
+          }
         }
       });
 
@@ -7117,34 +7117,24 @@
 
       const ensureEntry = (driver) => {
         if (!best.has(driver)) {
-          best.set(driver, { lap: Infinity, s1: Infinity, s2: Infinity, s3: Infinity });
+          best.set(driver, { lap: Infinity, s1: null, s2: null, s3: null });
         }
         return best.get(driver);
       };
 
       cache.rows.forEach(row => {
         if (row.session !== sessionNumber || !row.validLap) return;
+        if (!Number.isFinite(row.lapTime)) return;
+
+        const lapReady = !hasReplay || (Number.isFinite(row.lapEndTime) && row.lapEndTime <= replayTime);
+        if (!lapReady) return;
 
         const entry = ensureEntry(row.driver);
-
-        if (Number.isFinite(row.lapTime)) {
-          const lapReady = !hasReplay || (Number.isFinite(row.lapEndTime) && row.lapEndTime <= replayTime);
-          if (lapReady && row.lapTime < entry.lap) entry.lap = row.lapTime;
-        }
-
-        if (Number.isFinite(row.s1)) {
-          const s1Ready = !hasReplay || (Number.isFinite(row.s1Time) && row.s1Time <= replayTime);
-          if (s1Ready && row.s1 < entry.s1) entry.s1 = row.s1;
-        }
-
-        if (Number.isFinite(row.s2)) {
-          const s2Ready = !hasReplay || (Number.isFinite(row.s2Time) && row.s2Time <= replayTime);
-          if (s2Ready && row.s2 < entry.s2) entry.s2 = row.s2;
-        }
-
-        if (Number.isFinite(row.s3)) {
-          const s3Ready = !hasReplay || (Number.isFinite(row.s3Time) && row.s3Time <= replayTime);
-          if (s3Ready && row.s3 < entry.s3) entry.s3 = row.s3;
+        if (!Number.isFinite(entry.lap) || row.lapTime < entry.lap) {
+          entry.lap = row.lapTime;
+          entry.s1 = Number.isFinite(row.s1) ? row.s1 : null;
+          entry.s2 = Number.isFinite(row.s2) ? row.s2 : null;
+          entry.s3 = Number.isFinite(row.s3) ? row.s3 : null;
         }
       });
 
@@ -7205,7 +7195,7 @@
       if (!Number.isFinite(activeLap.lapStartTime)) return null;
 
       const lapElapsed = Math.max(0, replayTime - activeLap.lapStartTime);
-      let lapCell = { kind: 'ticking', value: lapElapsed };
+      let lapCell = { kind: 'ticking', value: lapElapsed, noEllipsis: true };
       if (Number.isFinite(activeLap.lapEndTime) &&
           replayTime >= activeLap.lapEndTime &&
           Number.isFinite(activeLap.lapTime)) {
@@ -7214,15 +7204,15 @@
 
       const s1Cell = (Number.isFinite(activeLap.s1Time) && replayTime >= activeLap.s1Time && Number.isFinite(activeLap.s1))
         ? { kind: 'final', value: activeLap.s1 }
-        : { kind: 'ticking', value: null };
+        : { kind: 'empty' };
 
       const s2Cell = (Number.isFinite(activeLap.s2Time) && replayTime >= activeLap.s2Time && Number.isFinite(activeLap.s2))
         ? { kind: 'final', value: activeLap.s2 }
-        : { kind: 'ticking', value: null };
+        : { kind: 'empty' };
 
       const s3Cell = (Number.isFinite(activeLap.s3Time) && replayTime >= activeLap.s3Time && Number.isFinite(activeLap.s3))
         ? { kind: 'final', value: activeLap.s3 }
-        : { kind: 'ticking', value: null };
+        : { kind: 'empty' };
 
       return { lap: lapCell, s1: s1Cell, s2: s2Cell, s3: s3Cell };
     }
@@ -7279,7 +7269,10 @@
       }
 
       if (cell.kind === 'ticking') {
-        const displayValue = Number.isFinite(cell.value) ? `${formatQualiTime(cell.value)}...` : '...';
+        const showEllipsis = !cell.noEllipsis;
+        const displayValue = Number.isFinite(cell.value)
+          ? `${formatQualiTime(cell.value)}${showEllipsis ? '...' : ''}`
+          : (showEllipsis ? '...' : '');
         nextStates.set(cellKey, { kind: 'ticking', value: null });
         return `<div class="quali-cell"><div class="quali-time ticking">${displayValue}</div></div>`;
       }
