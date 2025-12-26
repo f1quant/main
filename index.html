@@ -3164,6 +3164,7 @@
     let allRowsRaw = [];
     let baseRowsRaw = [];
     let qualiRowsRaw = [];
+    let qualiRows = [];
     let sessionsByKey = new Map();
     const fullSessionsByKey = new Map();
     let currentSessionData = null; // Stores filtered data for current session (with replay filter applied if active)
@@ -4477,6 +4478,11 @@
     function applySpoilerFilter() {
       allRows = filterRowsForSpoilerConfig(allRowsRaw, spoilerConfig);
       indexSessions(allRows, sessionsByKey);
+      if (Array.isArray(qualiRowsRaw) && qualiRowsRaw.length > 0) {
+        qualiRows = filterRowsForSpoilerConfig(qualiRowsRaw, spoilerConfig);
+      } else {
+        qualiRows = [];
+      }
     }
 
     function initializeSessionsUI(options = {}) {
@@ -5621,9 +5627,9 @@
     }
 
     function finalizeCombinedData() {
-      if (!rawRaceDataReady || !rawQualiDataReady) return;
+      if (!rawRaceDataReady) return;
 
-      allRowsRaw = baseRowsRaw.concat(qualiRowsRaw);
+      allRowsRaw = baseRowsRaw;
 
       if (!allRowsRaw.length) {
         statusMessage.textContent = "No usable rows found";
@@ -5631,6 +5637,9 @@
       }
 
       indexSessions(allRowsRaw, fullSessionsByKey);
+
+      if (rawDataReady) return;
+
       rawDataReady = true;
 
       const prefs = getSpoilerPreferenceValues();
@@ -5707,12 +5716,18 @@
           );
 
           rawQualiDataReady = true;
-          finalizeCombinedData();
+          if (rawDataReady && spoilerDecisionResolved) {
+            applySpoilerFilter();
+            updateQualiSessionData();
+          }
         },
         error: function (err) {
           console.warn("Papa Parse error:", err);
           rawQualiDataReady = true;
-          finalizeCombinedData();
+          if (rawDataReady && spoilerDecisionResolved) {
+            applySpoilerFilter();
+            updateQualiSessionData();
+          }
         }
       });
     }
@@ -5822,7 +5837,7 @@
       const selectedSeason = seasonSel.value;
       const selectedGP = gpSel.value;
 
-      if (!selectedSeason || !selectedGP || !Array.isArray(allRows) || allRows.length === 0) {
+      if (!selectedSeason || !selectedGP || !Array.isArray(qualiRows) || qualiRows.length === 0) {
         currentQualiDataUnfiltered = [];
         qualiCache = null;
         currentQualiSessionType = 'Q';
@@ -5832,7 +5847,7 @@
       }
 
       const [round, meeting] = selectedGP.split('||');
-      const eventQualiRows = allRows.filter(r => {
+      const eventQualiRows = qualiRows.filter(r => {
         return String(r.year || "").trim() === selectedSeason &&
                String(r.round_no || "").trim() === round &&
                String(r.meeting_name || "").trim() === meeting &&
