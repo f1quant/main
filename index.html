@@ -6955,6 +6955,7 @@
       const drivers = new Set();
       const sessions = new Set();
       const sessionStartTimes = new Map();
+      const sessionMinSectorTimes = new Map();
       const lapsByDriver = new Map();
       const bestFinalBySession = new Map();
       const bestLapByDriverSession = new Map();
@@ -7022,6 +7023,15 @@
           }
         }
 
+        const sectorTimes = [s1Time, s2Time, s3Time].filter(t => Number.isFinite(t));
+        if (sectorTimes.length > 0) {
+          const existing = sessionMinSectorTimes.get(session);
+          const candidate = Math.min(...sectorTimes);
+          if (!Number.isFinite(existing) || candidate < existing) {
+            sessionMinSectorTimes.set(session, candidate);
+          }
+        }
+
         if (!lapsByDriver.has(driver)) {
           lapsByDriver.set(driver, []);
         }
@@ -7078,6 +7088,7 @@
         drivers: driverList,
         sessions: sessionList,
         sessionStartTimes,
+        sessionMinSectorTimes,
         lapsByDriver,
         bestFinalBySession,
         bestLapByDriverSession
@@ -7092,7 +7103,7 @@
         return sortedDesc[0];
       }
       for (const session of sortedDesc) {
-        const start = cache.sessionStartTimes.get(session);
+        const start = cache.sessionMinSectorTimes.get(session);
         if (Number.isFinite(start) && replayTime >= start) {
           return session;
         }
@@ -7390,6 +7401,13 @@
         });
       }
 
+      const shouldShowSession = (sessionNumber) => {
+        if (!isReplay || !Number.isFinite(replayTime)) return true;
+        const start = qualiCache.sessionMinSectorTimes.get(sessionNumber);
+        if (!Number.isFinite(start)) return false;
+        return replayTime >= start;
+      };
+
       const getBestMapForSession = (sessionNumber) => {
         if (sessionNumber === activeSession) return bestCurrent;
         return bestFinalBySession.get(sessionNumber) || new Map();
@@ -7398,6 +7416,10 @@
       const sessionNumbers = [3, 2, 1];
       const leaderBaselineBySession = new Map();
       sessionNumbers.forEach(sessionNumber => {
+        if (!shouldShowSession(sessionNumber)) {
+          leaderBaselineBySession.set(sessionNumber, null);
+          return;
+        }
         const map = getBestMapForSession(sessionNumber);
         const leaderBest = leaderDriver ? map.get(leaderDriver) : null;
         leaderBaselineBySession.set(sessionNumber, leaderBest || null);
@@ -7471,9 +7493,10 @@
         html += `<td>${isReplay ? renderQualiCell(liveCells?.s3, leaderLiveBaseline.s3, `${driver}|live|s3`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
 
         sessionNumbers.forEach(sessionNumber => {
-          const sessionMap = getBestMapForSession(sessionNumber);
-          const best = sessionMap.get(driver) || {};
-          const leaderBest = leaderBaselineBySession.get(sessionNumber);
+          const showSession = shouldShowSession(sessionNumber);
+          const sessionMap = showSession ? getBestMapForSession(sessionNumber) : new Map();
+          const best = showSession ? (sessionMap.get(driver) || {}) : {};
+          const leaderBest = showSession ? leaderBaselineBySession.get(sessionNumber) : null;
 
           const lapBaseline = leaderBest?.lap ?? null;
           const s1Baseline = leaderBest?.s1 ?? null;
