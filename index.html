@@ -6964,6 +6964,18 @@
       return secs.toFixed(3).padStart(6, '0');
     }
 
+    function formatQualiLiveTime(seconds) {
+      if (!Number.isFinite(seconds)) return '';
+      if (seconds < 0) seconds = 0;
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds - mins * 60;
+      const formattedSecs = secs.toFixed(1).padStart(4, '0');
+      if (mins > 0) {
+        return `${mins}:${formattedSecs}`;
+      }
+      return formattedSecs;
+    }
+
     function formatQualiDelta(seconds) {
       if (!Number.isFinite(seconds)) return '';
       const sign = seconds < 0 ? '-' : '+';
@@ -7282,7 +7294,8 @@
       return shouldFlash ? ' quali-cell-flash' : '';
     }
 
-    function renderQualiCell(cell, baseline, cellKey, nextStates) {
+    function renderQualiCell(cell, baseline, cellKey, nextStates, options = {}) {
+      const timeFormatter = options.timeFormatter || formatQualiTime;
       if (!cell || cell.kind === 'empty') {
         nextStates.set(cellKey, { kind: 'empty', value: null });
         return '<span class="quali-placeholder">--</span>';
@@ -7291,14 +7304,14 @@
       if (cell.kind === 'ticking') {
         const showEllipsis = !cell.noEllipsis;
         const displayValue = Number.isFinite(cell.value)
-          ? `${formatQualiTime(cell.value)}${showEllipsis ? '...' : ''}`
+          ? `${timeFormatter(cell.value)}${showEllipsis ? '...' : ''}`
           : (showEllipsis ? '...' : '');
         nextStates.set(cellKey, { kind: 'ticking', value: null });
         return `<div class="quali-cell"><div class="quali-time ticking">${displayValue}</div></div>`;
       }
 
       const flashClass = getQualiCellFlashClass(cellKey, cell, nextStates);
-      const timeText = formatQualiTime(cell.value);
+      const timeText = timeFormatter(cell.value);
       const deltaText = Number.isFinite(baseline) ? formatQualiDelta(cell.value - baseline) : '';
       return `<div class="quali-cell"><div class="quali-time${flashClass}">${timeText}</div><div class="quali-delta">${deltaText}</div></div>`;
     }
@@ -7515,7 +7528,7 @@
         const liveLap = isReplay ? liveLapByDriver.get(driver) : null;
         const liveCells = isReplay && liveLap ? liveLap : null;
 
-        html += `<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
+        html += `<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates, { timeFormatter: formatQualiLiveTime }) : '<span class="quali-placeholder">--</span>'}</td>`;
         html += `<td>${isReplay ? renderQualiCell(liveCells?.s1, leaderLiveBaseline.s1, `${driver}|live|s1`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
         html += `<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveBaseline.s2, `${driver}|live|s2`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
         html += `<td>${isReplay ? renderQualiCell(liveCells?.s3, leaderLiveBaseline.s3, `${driver}|live|s3`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
