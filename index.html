@@ -7349,7 +7349,11 @@
 
       const flashClass = getQualiCellFlashClass(cellKey, cell, nextStates);
       const timeText = timeFormatter(cell.value);
-      const deltaText = Number.isFinite(baseline) ? formatQualiDelta(cell.value - baseline) : '';
+      const deltaValue = Number.isFinite(options.deltaValue) ? options.deltaValue : cell.value;
+      const deltaBaseline = Number.isFinite(options.deltaBaseline) ? options.deltaBaseline : baseline;
+      const deltaText = (Number.isFinite(deltaBaseline) && Number.isFinite(deltaValue))
+        ? formatQualiDelta(deltaValue - deltaBaseline)
+        : '';
       return `<div class="quali-cell"><div class="quali-time${flashClass}${timeClass}">${timeText}</div><div class="quali-delta">${deltaText}</div></div>`;
     }
 
@@ -7526,6 +7530,9 @@
         s2: Number.isFinite(leaderBestCurrent?.s2) ? leaderBestCurrent.s2 : null,
         s3: Number.isFinite(leaderBestCurrent?.s3) ? leaderBestCurrent.s3 : null
       };
+      const leaderLiveSectorBaselineCumS2 = (Number.isFinite(leaderLiveSectorBaseline.s1) && Number.isFinite(leaderLiveSectorBaseline.s2))
+        ? leaderLiveSectorBaseline.s1 + leaderLiveSectorBaseline.s2
+        : null;
 
       const nextCellStates = new Map();
 
@@ -7585,10 +7592,13 @@
         const liveS1Class = getQualiLiveSectorClass(liveCells?.s1, liveSectorBests.sessionBest.s1, personalLiveBests?.s1);
         const liveS2Class = getQualiLiveSectorClass(liveCells?.s2, liveSectorBests.sessionBest.s2, personalLiveBests?.s2);
         const liveS3Class = getQualiLiveSectorClass(liveCells?.s3, liveSectorBests.sessionBest.s3, personalLiveBests?.s3);
+        const liveS2DeltaValue = (liveCells?.s1?.kind === 'final' && liveCells?.s2?.kind === 'final')
+          ? liveCells.s1.value + liveCells.s2.value
+          : null;
 
         html += `<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates, { timeFormatter: formatQualiLiveTime }) : '<span class="quali-placeholder">--</span>'}</td>`;
         html += `<td>${isReplay ? renderQualiCell(liveCells?.s1, leaderLiveSectorBaseline.s1, `${driver}|live|s1`, nextCellStates, { timeClass: liveS1Class }) : '<span class="quali-placeholder">--</span>'}</td>`;
-        html += `<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveSectorBaseline.s2, `${driver}|live|s2`, nextCellStates, { timeClass: liveS2Class }) : '<span class="quali-placeholder">--</span>'}</td>`;
+        html += `<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveSectorBaseline.s2, `${driver}|live|s2`, nextCellStates, { timeClass: liveS2Class, deltaValue: liveS2DeltaValue, deltaBaseline: leaderLiveSectorBaselineCumS2 }) : '<span class="quali-placeholder">--</span>'}</td>`;
         html += `<td>${isReplay ? renderQualiCell(liveCells?.s3, leaderLiveSectorBaseline.s3, `${driver}|live|s3`, nextCellStates, { timeClass: liveS3Class }) : '<span class="quali-placeholder">--</span>'}</td>`;
 
         sessionNumbers.forEach(sessionNumber => {
