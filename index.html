@@ -7180,6 +7180,42 @@
       return best;
     }
 
+    function computeQualiSectorBests(cache, sessionNumber, replayTime, isReplay) {
+      const sessionBest = { s1: null, s2: null, s3: null };
+      const personalBest = new Map();
+      const hasReplay = isReplay && Number.isFinite(replayTime);
+
+      const ensurePersonal = (driver) => {
+        if (!personalBest.has(driver)) {
+          personalBest.set(driver, { s1: null, s2: null, s3: null });
+        }
+        return personalBest.get(driver);
+      };
+
+      const considerSector = (value, time, key, personal) => {
+        if (!Number.isFinite(value)) return;
+        if (hasReplay && (!Number.isFinite(time) || time > replayTime)) return;
+
+        if (!Number.isFinite(sessionBest[key]) || value < sessionBest[key]) {
+          sessionBest[key] = value;
+        }
+        if (!Number.isFinite(personal[key]) || value < personal[key]) {
+          personal[key] = value;
+        }
+      };
+
+      cache.rows.forEach(row => {
+        if (row.session !== sessionNumber || !row.validLap) return;
+
+        const personal = ensurePersonal(row.driver);
+        considerSector(row.s1, row.s1Time, 's1', personal);
+        considerSector(row.s2, row.s2Time, 's2', personal);
+        considerSector(row.s3, row.s3Time, 's3', personal);
+      });
+
+      return { sessionBest, personalBest };
+    }
+
     function findActiveLap(laps, replayTime) {
       if (!Array.isArray(laps) || laps.length === 0 || !Number.isFinite(replayTime)) return null;
 
@@ -7296,6 +7332,7 @@
 
     function renderQualiCell(cell, baseline, cellKey, nextStates, options = {}) {
       const timeFormatter = options.timeFormatter || formatQualiTime;
+      const timeClass = options.timeClass ? ` ${options.timeClass}` : '';
       if (!cell || cell.kind === 'empty') {
         nextStates.set(cellKey, { kind: 'empty', value: null });
         return '<span class="quali-placeholder">--</span>';
@@ -7313,7 +7350,16 @@
       const flashClass = getQualiCellFlashClass(cellKey, cell, nextStates);
       const timeText = timeFormatter(cell.value);
       const deltaText = Number.isFinite(baseline) ? formatQualiDelta(cell.value - baseline) : '';
-      return `<div class="quali-cell"><div class="quali-time${flashClass}">${timeText}</div><div class="quali-delta">${deltaText}</div></div>`;
+      return `<div class="quali-cell"><div class="quali-time${flashClass}${timeClass}">${timeText}</div><div class="quali-delta">${deltaText}</div></div>`;
+    }
+
+    function getQualiLiveSectorClass(cell, sessionBest, personalBest) {
+      if (!cell || cell.kind !== 'final' || !Number.isFinite(cell.value)) return '';
+      const isSessionBest = Number.isFinite(sessionBest) && Math.abs(cell.value - sessionBest) < 0.001;
+      const isPersonalBest = !isSessionBest && Number.isFinite(personalBest) && Math.abs(cell.value - personalBest) < 0.001;
+      if (isSessionBest) return 'timing-fastest';
+      if (isPersonalBest) return 'timing-personal-best';
+      return 'timing-normal-sector';
     }
 
     function initializeQualiPanel() {
@@ -7352,6 +7398,7 @@
 
       const activeSession = getActiveQualiSession(qualiCache, replayTime, isReplay);
       const bestCurrent = computeBestThisSession(qualiCache, activeSession, replayTime, isReplay);
+      const liveSectorBests = computeQualiSectorBests(qualiCache, activeSession, replayTime, isReplay);
       const bestFinalBySession = qualiCache.bestFinalBySession;
 
       const drivers = qualiCache.drivers.slice();
@@ -7473,6 +7520,13 @@
         s3: leaderLive?.s3?.kind === 'final' ? leaderLive.s3.value : null
       };
 
+      const leaderBestCurrent = leaderDriver ? bestCurrent.get(leaderDriver) : null;
+      const leaderLiveSectorBaseline = {
+        s1: Number.isFinite(leaderBestCurrent?.s1) ? leaderBestCurrent.s1 : null,
+        s2: Number.isFinite(leaderBestCurrent?.s2) ? leaderBestCurrent.s2 : null,
+        s3: Number.isFinite(leaderBestCurrent?.s3) ? leaderBestCurrent.s3 : null
+      };
+
       const nextCellStates = new Map();
 
       let html = '<table class="quali-table"><thead>';
@@ -7527,11 +7581,15 @@
 
         const liveLap = isReplay ? liveLapByDriver.get(driver) : null;
         const liveCells = isReplay && liveLap ? liveLap : null;
+        const personalLiveBests = liveSectorBests.personalBest.get(driver);
+        const liveS1Class = getQualiLiveSectorClass(liveCells?.s1, liveSectorBests.sessionBest.s1, personalLiveBests?.s1);
+        const liveS2Class = getQualiLiveSectorClass(liveCells?.s2, liveSectorBests.sessionBest.s2, personalLiveBests?.s2);
+        const liveS3Class = getQualiLiveSectorClass(liveCells?.s3, liveSectorBests.sessionBest.s3, personalLiveBests?.s3);
 
         html += `<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates, { timeFormatter: formatQualiLiveTime }) : '<span class="quali-placeholder">--</span>'}</td>`;
-        html += `<td>${isReplay ? renderQualiCell(liveCells?.s1, leaderLiveBaseline.s1, `${driver}|live|s1`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
-        html += `<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveBaseline.s2, `${driver}|live|s2`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
-        html += `<td>${isReplay ? renderQualiCell(liveCells?.s3, leaderLiveBaseline.s3, `${driver}|live|s3`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
+        html += `<td>${isReplay ? renderQualiCell(liveCells?.s1, leaderLiveSectorBaseline.s1, `${driver}|live|s1`, nextCellStates, { timeClass: liveS1Class }) : '<span class="quali-placeholder">--</span>'}</td>`;
+        html += `<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveSectorBaseline.s2, `${driver}|live|s2`, nextCellStates, { timeClass: liveS2Class }) : '<span class="quali-placeholder">--</span>'}</td>`;
+        html += `<td>${isReplay ? renderQualiCell(liveCells?.s3, leaderLiveSectorBaseline.s3, `${driver}|live|s3`, nextCellStates, { timeClass: liveS3Class }) : '<span class="quali-placeholder">--</span>'}</td>`;
 
         sessionNumbers.forEach(sessionNumber => {
           const showSession = shouldShowSession(sessionNumber);
