@@ -7330,41 +7330,6 @@
 
       const drivers = qualiCache.drivers.slice();
 
-      let leaderDriver = null;
-      let leaderLap = null;
-      drivers.forEach(driver => {
-        const bestLap = bestCurrent.get(driver)?.lap;
-        if (!Number.isFinite(bestLap)) return;
-        if (!Number.isFinite(leaderLap) || bestLap < leaderLap) {
-          leaderLap = bestLap;
-          leaderDriver = driver;
-        }
-      });
-
-      const sortedDrivers = drivers.slice().sort((a, b) => {
-        const lapA = bestCurrent.get(a)?.lap;
-        const lapB = bestCurrent.get(b)?.lap;
-        const aValid = Number.isFinite(lapA);
-        const bValid = Number.isFinite(lapB);
-        if (aValid && bValid) {
-          if (lapA !== lapB) return lapA - lapB;
-          return a.localeCompare(b);
-        }
-        if (aValid) return -1;
-        if (bValid) return 1;
-        return a.localeCompare(b);
-      });
-
-      const positionByDriver = new Map();
-      let posCounter = 1;
-      sortedDrivers.forEach(driver => {
-        const lap = bestCurrent.get(driver)?.lap;
-        if (Number.isFinite(lap)) {
-          positionByDriver.set(driver, posCounter);
-          posCounter += 1;
-        }
-      });
-
       const activeLapByDriver = new Map();
       const liveLapByDriver = new Map();
       const lastLapByDriver = new Map();
@@ -7409,9 +7374,58 @@
       };
 
       const getBestMapForSession = (sessionNumber) => {
+        if (!shouldShowSession(sessionNumber)) return new Map();
         if (sessionNumber === activeSession) return bestCurrent;
         return bestFinalBySession.get(sessionNumber) || new Map();
       };
+
+      const getBestLapValue = (driver, sessionNumber) => {
+        const map = getBestMapForSession(sessionNumber);
+        const value = map.get(driver)?.lap;
+        return Number.isFinite(value) ? value : null;
+      };
+
+      const driverOrderData = drivers.map(driver => {
+        const q3 = getBestLapValue(driver, 3);
+        const q2 = getBestLapValue(driver, 2);
+        const q1 = getBestLapValue(driver, 1);
+
+        let tier = 3;
+        let best = null;
+        if (Number.isFinite(q3)) {
+          tier = 0;
+          best = q3;
+        } else if (Number.isFinite(q2)) {
+          tier = 1;
+          best = q2;
+        } else if (Number.isFinite(q1)) {
+          tier = 2;
+          best = q1;
+        }
+
+        return { driver, tier, best, q1, q2, q3 };
+      });
+
+      const sortedDrivers = driverOrderData.slice().sort((a, b) => {
+        if (a.tier !== b.tier) return a.tier - b.tier;
+        const aBest = Number.isFinite(a.best) ? a.best : Infinity;
+        const bBest = Number.isFinite(b.best) ? b.best : Infinity;
+        if (aBest !== bBest) return aBest - bBest;
+        return a.driver.localeCompare(b.driver);
+      });
+
+      const leaderEntry = sortedDrivers.find(entry => Number.isFinite(entry.best));
+      const leaderDriver = leaderEntry ? leaderEntry.driver : null;
+      const leaderLap = leaderEntry ? leaderEntry.best : null;
+
+      const positionByDriver = new Map();
+      let posCounter = 1;
+      sortedDrivers.forEach(entry => {
+        if (Number.isFinite(entry.best)) {
+          positionByDriver.set(entry.driver, posCounter);
+          posCounter += 1;
+        }
+      });
 
       const sessionNumbers = [3, 2, 1];
       const leaderBaselineBySession = new Map();
@@ -7453,12 +7467,13 @@
       html += '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>';
       html += '</tr></thead><tbody>';
 
-      sortedDrivers.forEach(driver => {
+      sortedDrivers.forEach(entry => {
+        const driver = entry.driver;
         const position = positionByDriver.get(driver) || '';
         const isHotLap = hotLapByDriver.get(driver) === true;
         const rowClass = isHotLap ? 'hot-lap' : '';
 
-        const bestLapCurrent = bestCurrent.get(driver)?.lap;
+        const bestLapCurrent = entry.best;
         const gap = Number.isFinite(bestLapCurrent) && Number.isFinite(leaderLap)
           ? formatQualiDelta(bestLapCurrent - leaderLap)
           : '';
