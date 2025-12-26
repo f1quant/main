@@ -12281,17 +12281,13 @@ setupTyreDegFilterModal();
       avgCompound.style.color = 'var(--muted-color)';
       avgRow.appendChild(avgCompound);
 
-      const averageFuelEffect = sortedGroups.length
-        ? sortedGroups.reduce((sum, [, g]) => sum + g.averageRatio, 0) / sortedGroups.length
-        : NaN;
+      let averageFuelEffect = NaN;
+      let averageTotalPairs = 0;
       const avgEffectCell = document.createElement('td');
-      avgEffectCell.textContent = Number.isFinite(averageFuelEffect) ? averageFuelEffect.toFixed(3) : '-';
       avgEffectCell.style.fontWeight = '700';
       avgRow.appendChild(avgEffectCell);
 
-      const totalPairs = sortedGroups.reduce((sum, [, g]) => sum + (g.totalPairs || 0), 0);
       const avgSamplesCell = document.createElement('td');
-      avgSamplesCell.textContent = `${totalPairs}`;
       avgRow.appendChild(avgSamplesCell);
 
       tbody.appendChild(avgRow);
@@ -12312,7 +12308,6 @@ setupTyreDegFilterModal();
         font-size: 12px;
         cursor: pointer;
       `;
-      copyAvgBtn.disabled = !Number.isFinite(averageFuelEffect);
       copyAvgBtn.addEventListener('click', () => {
         if (!Number.isFinite(averageFuelEffect)) return;
         const reversedValue = -averageFuelEffect;
@@ -12326,6 +12321,21 @@ setupTyreDegFilterModal();
         }, 1000);
       });
       controlsRow.appendChild(copyAvgBtn);
+
+      const updateAverageRow = () => {
+        const selectedGroups = sortedGroups.filter(([key]) => appState.fuelEffect.selectedRows.has(key));
+        if (selectedGroups.length) {
+          averageFuelEffect = selectedGroups.reduce((sum, [, g]) => sum + g.averageRatio, 0) / selectedGroups.length;
+          averageTotalPairs = selectedGroups.reduce((sum, [, g]) => sum + (g.totalPairs || 0), 0);
+        } else {
+          averageFuelEffect = NaN;
+          averageTotalPairs = 0;
+        }
+        avgEffectCell.textContent = Number.isFinite(averageFuelEffect) ? averageFuelEffect.toFixed(3) : '-';
+        avgSamplesCell.textContent = selectedGroups.length ? `${averageTotalPairs}` : '-';
+        copyAvgBtn.disabled = !Number.isFinite(averageFuelEffect);
+      };
+      updateAverageRow();
 
       const tableSelectionItems = [];
 
@@ -12392,6 +12402,7 @@ setupTyreDegFilterModal();
         });
       }
       fuelEffectSelectionManager.onSelectionChange = () => {
+        updateAverageRow();
         renderFuelEffectScatterPlot(sortedGroups);
       };
       fuelEffectSelectionManager.setStructure({
