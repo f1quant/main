@@ -183,10 +183,19 @@ my_f1_utils.setup_cache(offline=False)
 #     save_timing_data(races)
 
 # =============== SAVING QUALIS ===============
+# all races to reconstruct everything
+races = []
+years = list(range(2025,2017,-1))
+rounds = list(range(26,0,-1))
+session_types = ["Q"]
+for year in years:
+    for round_no in rounds:
+        for session_type in session_types:
+            races.append((year, round_no, session_type))
 
-races = [(2021,16,"Q")]
+# races = [(2021,16,"Q")]
 all_df_fn = "github/all_df_q.csv"
-do_driver_info = False
+do_driver_info = True
 do_all_df = True
 
 if do_driver_info:
