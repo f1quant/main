@@ -3935,3 +3935,23 @@ year,round_no,session_type,driver,number,color,TeamName,FullName,HeadshotUrl
 2025,24,R,LAW,30,#fcd700,Racing Bulls,Liam Lawson,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LIALAW01_Liam_Lawson/lialaw01.png.transform/1col/image.png
 2025,24,R,GAS,10,#ff87bc,Alpine,Pierre Gasly,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png.transform/1col/image.png
 2025,24,R,COL,43,#ff87bc,Alpine,Franco Colapinto,None
+2021,16,Q,HAM,44,#00f5d0,Mercedes,Lewis Hamilton,https://www.formula1.com/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png.transform/1col/image.png
+2021,16,Q,BOT,77,#00f5d0,Mercedes,Valtteri Bottas,https://www.formula1.com/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png.transform/1col/image.png
+2021,16,Q,VER,33,#0600ef,Red Bull Racing,Max Verstappen,https://www.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png
+2021,16,Q,LEC,16,#dc0004,Ferrari,Charles Leclerc,https://www.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png.transform/1col/image.png
+2021,16,Q,GAS,10,#2b4562,AlphaTauri,Pierre Gasly,https://www.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png.transform/1col/image.png
+2021,16,Q,ALO,14,#0755ab,Alpine,Fernando Alonso,https://www.formula1.com/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png.transform/1col/image.png
+2021,16,Q,PER,11,#0600ef,Red Bull Racing,Sergio Perez,https://www.formula1.com/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png.transform/1col/image.png
+2021,16,Q,NOR,4,#ff8000,McLaren,Lando Norris,https://www.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png.transform/1col/image.png
+2021,16,Q,STR,18,#00665e,Aston Martin,Lance Stroll,https://www.formula1.com/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png.transform/1col/image.png
+2021,16,Q,TSU,22,#2b4562,AlphaTauri,Yuki Tsunoda,https://www.formula1.com/content/dam/fom-website/drivers/Y/YUKTSU01_Yuki_Tsunoda/yuktsu01.png.transform/1col/image.png
+2021,16,Q,VET,5,#00665e,Aston Martin,Sebastian Vettel,https://www.formula1.com/content/dam/fom-website/drivers/S/SEBVET01_Sebastian_Vettel/sebvet01.png.transform/1col/image.png
+2021,16,Q,OCO,31,#0755ab,Alpine,Esteban Ocon,https://www.formula1.com/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png.transform/1col/image.png
+2021,16,Q,RUS,63,#00a0dd,Williams,George Russell,https://www.formula1.com/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/1col/image.png
+2021,16,Q,MSC,47,#b6babd,Haas F1 Team,Mick Schumacher,https://www.formula1.com/content/dam/fom-website/drivers/M/MICSCH02_Mick_Schumacher/micsch02.png.transform/1col/image.png
+2021,16,Q,SAI,55,#dc0004,Ferrari,Carlos Sainz,https://www.formula1.com/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png.transform/1col/image.png
+2021,16,Q,RIC,3,#ff8000,McLaren,Daniel Ricciardo,https://www.formula1.com/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png.transform/1col/image.png
+2021,16,Q,LAT,6,#00a0dd,Williams,Nicholas Latifi,https://www.formula1.com/content/dam/fom-website/drivers/N/NICLAF01_Nicholas_Latifi/niclaf01.png.transform/1col/image.png
+2021,16,Q,GIO,99,#900000,Alfa Romeo Racing,Antonio Giovinazzi,https://www.formula1.com/content/dam/fom-website/drivers/A/ANTGIO01_Antonio_Giovinazzi/antgio01.png.transform/1col/image.png
+2021,16,Q,RAI,7,#900000,Alfa Romeo Racing,Kimi Räikkönen,https://www.formula1.com/content/dam/fom-website/drivers/K/KIMRAI01_Kimi_R%C3%A4ikk%C3%B6nen/kimrai01.png.transform/1col/image.png
+2021,16,Q,MAZ,9,#b6babd,Haas F1 Team,Nikita Mazepin,https://www.formula1.com/content/dam/fom-website/drivers/N/NIKMAZ01_Nikita_Mazepin/nikmaz01.png.transform/1col/image.png

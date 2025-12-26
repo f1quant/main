@@ -37,7 +37,7 @@ def save_driver_info(races):
             print(f"Skipping {year} R{round_no}: {e}")
             continue
 
-def process_round_laps(year, round_no, session_type):
+def process_round_laps(year, round_no, session_type, quali=False):
     rows = []
     print(f"Processing round laps for {year} {session_type}{round_no}")
     session = fastf1.get_session(year, round_no, session_type)
@@ -57,15 +57,27 @@ def process_round_laps(year, round_no, session_type):
         finish_status = driver_results["Status"].values[0]
         print(finish_status)
         driver_laps = laps.pick_drivers(driver)
+
+        if quali:
+            # make a map from lap number to which quali session it was in
+            q1, q2, q3 = driver_laps.split_qualifying_sessions()
+            quali_map = {}
+            for session, num in [(q1,1),(q2,2),(q3,3)]:
+                if session is None: continue
+                for lap in session.itertuples():
+                    quali_map[lap.LapNumber] = num
+                
         for _,lap in driver_laps.iterlaps():
             print(int(lap["LapNumber"]), end="|")
 
             # calc the min distance to car ahead
-            car_data = lap.get_car_data().add_distance().add_driver_ahead()
-            distances = car_data["DistanceToDriverAhead"].dropna()
             min_dist = 10000
-            if len(distances) > 0:
-                min_dist = distances.min()
+            car_data = lap.get_car_data().add_distance()
+            if not quali:
+                car_data = car_data.add_driver_ahead()
+                distances = car_data["DistanceToDriverAhead"].dropna()    
+                if len(distances) > 0:
+                    min_dist = distances.min()
 
             row = lap.to_dict()
             row = {f"lap_{k}": v for k, v in row.items()}
@@ -73,6 +85,7 @@ def process_round_laps(year, round_no, session_type):
             weather_data = {f"weather_{k}": v for k, v in weather_data.items()}
             row.update(weather_data)
 
+            # extra columns that don't come from lap or weather data
             row["year"] = year
             row["round_no"] = round_no
             row["session_type"] = session_type
@@ -84,7 +97,10 @@ def process_round_laps(year, round_no, session_type):
             row["finish_status"] = finish_status
             row["min_dist"] = min_dist
             row["lap_length"] = car_data["Distance"].iloc[-1]
+            if quali:
+                row["quali_session"] = quali_map.get(lap["LapNumber"], None)
 
+            # td cols need to be converted from timedelta to seconds
             td_cols = [
                 "lap_Time",
                 "lap_LapTime",
@@ -109,12 +125,10 @@ def process_round_laps(year, round_no, session_type):
     df = pd.DataFrame(rows)
     return df
 
-def save_to_all_df(races):
-    fn = "github/all_df.csv"
-    
+def save_to_all_df(races, fn, quali=False):
     for year, round_no, session_type in races:    
         try:
-            df = process_round_laps(year, round_no, session_type)
+            df = process_round_laps(year, round_no, session_type, quali=quali)
             path = Path(fn)
             if path.exists() and path.stat().st_size > 0:
                 header_order = pd.read_csv(fn, nrows=0).columns.tolist()  # existing CSV column order
@@ -123,7 +137,7 @@ def save_to_all_df(races):
             else:
                 df.to_csv(fn, index=False)                                 # new/empty file: write header once
         except Exception as e:
-            print(f"Skipping {year} R{round_no}: {e}")
+            print(f"Skipping {year} {session_type} {round_no}: {e}")
             continue
 
 def save_timing_data(races):
@@ -140,10 +154,9 @@ def save_timing_data(races):
             print(f"Skipped {fn}: {e}")
             continue
 
-
 my_f1_utils.setup_cache(offline=False)
-races = [(2025,24,"R")]
 
+# =============== SAVING RACES OR SPRINTS ===============
 # all races to reconstruct everything
 # races = []
 # years = list(range(2025,2017,-1))
@@ -154,15 +167,30 @@ races = [(2025,24,"R")]
 #         for session_type in session_types:
 #             races.append((year, round_no, session_type))
 
-do_driver_info = True
+# races = [(2025,24,"R")]
+# all_df_fn = "github/all_df.csv"
+# do_driver_info = True
+# do_all_df = True
+# do_timing_data = True
+
+# if do_driver_info:
+#     save_driver_info(races)
+
+# if do_all_df:
+#     save_to_all_df(races, all_df_fn)
+
+# if do_timing_data:
+#     save_timing_data(races)
+
+# =============== SAVING QUALIS ===============
+
+races = [(2021,16,"Q")]
+all_df_fn = "github/all_df_q.csv"
+do_driver_info = False
 do_all_df = True
-do_timing_data = True
 
 if do_driver_info:
     save_driver_info(races)
 
 if do_all_df:
-    save_to_all_df(races)
-
-if do_timing_data:
-    save_timing_data(races)
+    save_to_all_df(races, all_df_fn, quali=True)

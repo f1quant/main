@@ -529,6 +529,176 @@
     }
 
     /* ========================================================================
+       QUALI PANEL STYLES
+       ======================================================================== */
+
+    .quali-table-wrapper {
+      overflow: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: #141414;
+    }
+
+    .quali-table {
+      width: 100%;
+      min-width: 1120px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif;
+      background: #1a1a1a;
+    }
+
+    .quali-table thead {
+      background: #242424;
+    }
+
+    .quali-table th {
+      padding: 6px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #fff;
+      letter-spacing: 0.3px;
+      text-align: center;
+      border-bottom: 1px solid #2d2d2d;
+    }
+
+    .quali-table thead tr:first-child th {
+      border-bottom: 1px solid #333;
+    }
+
+    .quali-table tbody tr {
+      height: 30px;
+      border-bottom: 1px solid #101010;
+    }
+
+    .quali-table tbody tr:nth-child(even) {
+      background: #1a1a1a;
+    }
+
+    .quali-table tbody tr:nth-child(odd) {
+      background: #212121;
+    }
+
+    .quali-table tbody tr.hot-lap {
+      background: rgba(255, 196, 86, 0.12);
+    }
+
+    .quali-table tbody tr:hover {
+      background: rgba(0, 224, 255, 0.12);
+    }
+
+    .quali-table td {
+      padding: 4px 6px;
+      text-align: center;
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quali-table th.sticky-col,
+    .quali-table td.sticky-col {
+      position: sticky;
+      z-index: 2;
+      background: inherit;
+      box-shadow: 2px 0 0 #0d0d0d;
+    }
+
+    .quali-table th.sticky-col {
+      z-index: 4;
+      background: #242424;
+    }
+
+    .quali-table .sticky-col-1 { left: 0; width: 46px; }
+    .quali-table .sticky-col-2 { left: 46px; width: 78px; }
+    .quali-table .sticky-col-3 { left: 124px; width: 72px; }
+    .quali-table .sticky-col-4 { left: 196px; width: 132px; }
+
+    .quali-group-start {
+      border-left: 1px solid #2f2f2f;
+    }
+
+    .quali-position {
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .quali-driver {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-start;
+    }
+
+    .quali-driver-strip {
+      width: 3px;
+      height: 18px;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+
+    .quali-driver-code {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+    }
+
+    .quali-status {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--muted-color);
+      text-align: left;
+    }
+
+    .quali-gap {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 11px;
+      color: #fff;
+    }
+
+    .quali-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.1;
+    }
+
+    .quali-time {
+      font-family: 'Roboto Mono', monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 11px;
+      color: #fff;
+    }
+
+    .quali-time.ticking {
+      opacity: 0.7;
+      font-style: italic;
+    }
+
+    .quali-delta {
+      font-family: 'Roboto Mono', monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 10px;
+      color: var(--muted-color);
+      min-height: 10px;
+    }
+
+    .quali-placeholder {
+      color: var(--muted-color);
+    }
+
+    .quali-cell-flash {
+      animation: qualiFlash 0.6s ease;
+    }
+
+    @keyframes qualiFlash {
+      0% { background: rgba(255, 196, 86, 0.45); }
+      100% { background: transparent; }
+    }
+
+    /* ========================================================================
        STRATEGY PANEL STYLES
        ======================================================================== */
 
@@ -2371,6 +2541,7 @@
     <!-- Tab Navigation -->
     <div class="tab-navigation">
       <button class="tab-button active" data-tab="timing">Timing</button>
+      <button class="tab-button" data-tab="quali">Quali</button>
       <button class="tab-button" data-tab="race-trace">Trace</button>
       <button class="tab-button" data-tab="strategy">Strategy</button>
       <button class="tab-button" data-tab="fuel-effect" data-tooltip="Compares laps for the same (driver, compound, tyre life) at different fuel loads. 'Copy Average to Calculator' to apply to other tabs.">Fuel Effect</button>
@@ -2481,6 +2652,11 @@
         </div>
       </div>
       <div id="lapTimeSummaryTableContainer"></div>
+    </div>
+
+    <!-- Quali Panel -->
+    <div id="quali-panel" class="content-panel">
+      <div id="qualiTableContainer" class="quali-table-wrapper"></div>
     </div>
 
     <!-- Strategy Panel -->
@@ -2986,16 +3162,23 @@
 
     let allRows = [];
     let allRowsRaw = [];
+    let baseRowsRaw = [];
+    let qualiRowsRaw = [];
     let sessionsByKey = new Map();
     const fullSessionsByKey = new Map();
     let currentSessionData = null; // Stores filtered data for current session (with replay filter applied if active)
     let currentSessionDataUnfiltered = null; // Stores session data without replay time filter
+    let currentQualiDataUnfiltered = [];
+    let qualiCache = null;
+    let qualiPreviousCellStates = new Map();
     let replayTimeline = []; // Chronological list of lap/sector events for timing replay
     let previousFilteredDataLength = 0; // Tracks filtered lap count for replay updates
     const timingInProgressLaps = new Map(); // Map<driver, {lapNum, s1, s2, startTime, tyre, position}>
     let timingFeedData = [];
     let timingFeedLoaded = false;
     let rawDataReady = false;
+    let rawRaceDataReady = false;
+    let rawQualiDataReady = false;
     let spoilerDecisionResolved = false;
     let sessionsInitialized = false;
     let pendingSessionRestore = false;
@@ -5152,6 +5335,10 @@
           // Also initialize lap-time visuals within timing tab
           initLapTimeSection();
           break;
+        case 'quali':
+          initializeQualiPanel();
+          setupQualiReplayListener();
+          break;
         case 'strategy':
           renderStrategyChart(sessionData, year, round, sessionType);
           // Subscribe to replay events for strategy chart (idempotent - won't add duplicates)
@@ -5287,9 +5474,42 @@
       const copyPermalinkBtn = document.getElementById('copyPermalinkBtn');
       copyPermalinkBtn.addEventListener('click', generateAndCopyPermalink);
 
-      DriverInfo.load(loadMainCSV);
+      DriverInfo.load(() => {
+        loadMainCSV();
+        loadQualiCSV();
+      });
 
       switchTab(appState.currentActiveTab);
+    }
+
+    function finalizeCombinedData() {
+      if (!rawRaceDataReady || !rawQualiDataReady) return;
+
+      allRowsRaw = baseRowsRaw.concat(qualiRowsRaw);
+
+      if (!allRowsRaw.length) {
+        statusMessage.textContent = "No usable rows found";
+        return;
+      }
+
+      indexSessions(allRowsRaw, fullSessionsByKey);
+      rawDataReady = true;
+
+      const prefs = getSpoilerPreferenceValues();
+      populateSpoilerSeasonOptions(prefs.season, prefs.gp, prefs.sessionType);
+
+      // Populate replay options if modal is already open
+      if (replayOverlay && replayOverlay.classList.contains('show')) {
+        populateReplaySeasonOptions();
+      }
+
+      const shouldRestore = Boolean(appState.session.season || appState.session.gp || appState.session.sessionType);
+      pendingSessionRestore = shouldRestore;
+      if (shouldRestore) {
+        window.permalinkSession = { isRestoring: true };
+      }
+
+      maybeInitializeAfterPrereqs();
     }
 
     function loadMainCSV() {
@@ -5303,7 +5523,7 @@
             console.warn("Papa Parse errors:", results.errors);
           }
 
-          allRowsRaw = (results.data || []).filter(row =>
+          baseRowsRaw = (results.data || []).filter(row =>
             row.year !== undefined &&
             row.round_no !== undefined &&
             row.meeting_name !== undefined &&
@@ -5311,28 +5531,12 @@
             String(row.year || "").trim() !== "2018"
           );
 
-          if (!allRowsRaw.length) {
+          if (!baseRowsRaw.length) {
             statusMessage.textContent = "No usable rows found";
-            return;
           }
 
-          indexSessions(allRowsRaw, fullSessionsByKey);
-          rawDataReady = true;
-          const prefs = getSpoilerPreferenceValues();
-          populateSpoilerSeasonOptions(prefs.season, prefs.gp, prefs.sessionType);
-
-          // Populate replay options if modal is already open
-          if (replayOverlay && replayOverlay.classList.contains('show')) {
-            populateReplaySeasonOptions();
-          }
-
-          const shouldRestore = Boolean(appState.session.season || appState.session.gp || appState.session.sessionType);
-          pendingSessionRestore = shouldRestore;
-          if (shouldRestore) {
-            window.permalinkSession = { isRestoring: true };
-          }
-
-          maybeInitializeAfterPrereqs();
+          rawRaceDataReady = true;
+          finalizeCombinedData();
         },
         error: function (err) {
           console.error("Papa Parse error:", err);
@@ -5343,6 +5547,36 @@
       seasonSel.addEventListener("change", onSeasonChange);
       gpSel.addEventListener("change", onGPChange);
       sessionSel.addEventListener("change", onSessionChange);
+    }
+
+    function loadQualiCSV() {
+      ParsedDataCache.loadCSV("all_df_q.csv", {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        complete: function (results) {
+          if (results.errors && results.errors.length) {
+            console.warn("Papa Parse errors:", results.errors);
+          }
+
+          qualiRowsRaw = (results.data || []).filter(row =>
+            row.year !== undefined &&
+            row.round_no !== undefined &&
+            row.meeting_name !== undefined &&
+            row.session_type !== undefined &&
+            String(row.year || "").trim() !== "2018"
+          );
+
+          rawQualiDataReady = true;
+          finalizeCombinedData();
+        },
+        error: function (err) {
+          console.warn("Papa Parse error:", err);
+          rawQualiDataReady = true;
+          finalizeCombinedData();
+        }
+      });
     }
 
     function indexSessions(rows, targetMap = sessionsByKey) {
@@ -5445,6 +5679,29 @@
       top5.forEach(driver => appState.selectedDrivers.add(driver));
     }
 
+    function updateQualiSessionData() {
+      const selectedSeason = seasonSel.value;
+      const selectedGP = gpSel.value;
+
+      if (!selectedSeason || !selectedGP || !Array.isArray(allRows) || allRows.length === 0) {
+        currentQualiDataUnfiltered = [];
+        qualiCache = null;
+        qualiPreviousCellStates = new Map();
+        return;
+      }
+
+      const [round, meeting] = selectedGP.split('||');
+      currentQualiDataUnfiltered = allRows.filter(r => {
+        return String(r.year || "").trim() === selectedSeason &&
+               String(r.round_no || "").trim() === round &&
+               String(r.meeting_name || "").trim() === meeting &&
+               String(r.session_type || "").trim().toUpperCase() === 'Q';
+      });
+
+      qualiCache = buildQualiCache(currentQualiDataUnfiltered);
+      qualiPreviousCellStates = new Map();
+    }
+
     function onSessionChange() {
       const selectedSeason = seasonSel.value;
       const selectedGP = gpSel.value;
@@ -5462,6 +5719,7 @@
         appState.timingSeenDrivers.clear();
         timingFeedData = [];
         timingFeedLoaded = false;
+        updateQualiSessionData();
         return;
       }
 
@@ -5474,6 +5732,7 @@
                String(r.meeting_name || "").trim() === meeting &&
                String(r.session_type || "").trim() === selectedSession;
       });
+      updateQualiSessionData();
 
       buildReplayTimeline(currentSessionDataUnfiltered);
       timingFeedData = [];
@@ -6501,6 +6760,588 @@
 
       replayEventEmitter.subscribe(ReplayEvents.TIME_TICK, timeTickListener);
       timingListenerSetup = true;
+    }
+
+    /* ========================================================================
+       QUALI TAB FUNCTIONS
+       ======================================================================== */
+
+    function parseBool(value) {
+      if (typeof value === 'boolean') return value;
+      if (value === null || value === undefined) return null;
+      const normalized = String(value).trim().toLowerCase();
+      if (!normalized) return null;
+      if (normalized === 'true' || normalized === '1') return true;
+      if (normalized === 'false' || normalized === '0') return false;
+      return null;
+    }
+
+    function formatQualiTime(seconds) {
+      if (!Number.isFinite(seconds)) return '';
+      if (seconds < 0) seconds = 0;
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds - mins * 60;
+      if (mins > 0) {
+        return `${mins}:${secs.toFixed(3).padStart(6, '0')}`;
+      }
+      return secs.toFixed(3).padStart(6, '0');
+    }
+
+    function formatQualiDelta(seconds) {
+      if (!Number.isFinite(seconds)) return '';
+      const sign = seconds < 0 ? '-' : '+';
+      return `${sign}${Math.abs(seconds).toFixed(3)}`;
+    }
+
+    function buildQualiCache(rows) {
+      const parsed = [];
+      const drivers = new Set();
+      const sessions = new Set();
+      const sessionStartTimes = new Map();
+      const lapsByDriver = new Map();
+      const bestFinalBySession = new Map();
+      const bestLapByDriverSession = new Map();
+
+      const ensureSessionMap = (map, session) => {
+        if (!map.has(session)) map.set(session, new Map());
+        return map.get(session);
+      };
+
+      const ensureBestEntry = (map, driver) => {
+        if (!map.has(driver)) {
+          map.set(driver, { lap: Infinity, s1: Infinity, s2: Infinity, s3: Infinity });
+        }
+        return map.get(driver);
+      };
+
+      rows.forEach(row => {
+        const driver = String(row.lap_Driver || '').trim();
+        const session = parseInt(row.quali_session, 10);
+        if (!driver || !Number.isFinite(session)) return;
+
+        const lapStartTime = parseFloat(row.lap_LapStartTime);
+        const lapEndTime = parseFloat(row.lap_Time);
+        const lapTime = parseFloat(row.lap_LapTime);
+        const s1 = parseFloat(row.lap_Sector1Time);
+        const s2 = parseFloat(row.lap_Sector2Time);
+        const s3 = parseFloat(row.lap_Sector3Time);
+        const s1Time = parseFloat(row.lap_Sector1SessionTime);
+        const s2Time = parseFloat(row.lap_Sector2SessionTime);
+        const s3Time = parseFloat(row.lap_Sector3SessionTime);
+        const pitOutTime = parseFloat(row.lap_PitOutTime);
+        const pitInTime = parseFloat(row.lap_PitInTime);
+        const lapNumber = parseInt(row.lap_LapNumber, 10);
+
+        const deleted = parseBool(row.lap_Deleted);
+        const accurate = parseBool(row.lap_IsAccurate);
+        const validLap = deleted !== true && accurate !== false;
+
+        const parsedRow = {
+          driver,
+          session,
+          lapNumber,
+          lapStartTime,
+          lapEndTime,
+          lapTime,
+          s1,
+          s2,
+          s3,
+          s1Time,
+          s2Time,
+          s3Time,
+          pitOutTime,
+          pitInTime,
+          validLap
+        };
+
+        parsed.push(parsedRow);
+        drivers.add(driver);
+        sessions.add(session);
+
+        if (Number.isFinite(lapStartTime)) {
+          const existing = sessionStartTimes.get(session);
+          if (!Number.isFinite(existing) || lapStartTime < existing) {
+            sessionStartTimes.set(session, lapStartTime);
+          }
+        }
+
+        if (!lapsByDriver.has(driver)) {
+          lapsByDriver.set(driver, []);
+        }
+        lapsByDriver.get(driver).push(parsedRow);
+
+        if (validLap) {
+          if (Number.isFinite(lapTime)) {
+            const lapMap = ensureSessionMap(bestLapByDriverSession, session);
+            const existing = lapMap.get(driver);
+            if (!Number.isFinite(existing) || lapTime < existing) {
+              lapMap.set(driver, lapTime);
+            }
+          }
+
+          const sessionMap = ensureSessionMap(bestFinalBySession, session);
+          const bestEntry = ensureBestEntry(sessionMap, driver);
+          if (Number.isFinite(lapTime) && lapTime < bestEntry.lap) bestEntry.lap = lapTime;
+          if (Number.isFinite(s1) && s1 < bestEntry.s1) bestEntry.s1 = s1;
+          if (Number.isFinite(s2) && s2 < bestEntry.s2) bestEntry.s2 = s2;
+          if (Number.isFinite(s3) && s3 < bestEntry.s3) bestEntry.s3 = s3;
+        }
+      });
+
+      lapsByDriver.forEach(laps => {
+        laps.sort((a, b) => {
+          const aStart = Number.isFinite(a.lapStartTime) ? a.lapStartTime : Infinity;
+          const bStart = Number.isFinite(b.lapStartTime) ? b.lapStartTime : Infinity;
+          return aStart - bStart;
+        });
+      });
+
+      const driverList = Array.from(drivers).sort();
+      const sessionList = Array.from(sessions).sort((a, b) => a - b);
+
+      bestFinalBySession.forEach(sessionMap => {
+        sessionMap.forEach(entry => {
+          entry.lap = Number.isFinite(entry.lap) ? entry.lap : null;
+          entry.s1 = Number.isFinite(entry.s1) ? entry.s1 : null;
+          entry.s2 = Number.isFinite(entry.s2) ? entry.s2 : null;
+          entry.s3 = Number.isFinite(entry.s3) ? entry.s3 : null;
+        });
+      });
+
+      bestLapByDriverSession.forEach((sessionMap, session) => {
+        sessionMap.forEach((value, driver) => {
+          if (!Number.isFinite(value)) {
+            sessionMap.delete(driver);
+          }
+        });
+      });
+
+      return {
+        rows: parsed,
+        drivers: driverList,
+        sessions: sessionList,
+        sessionStartTimes,
+        lapsByDriver,
+        bestFinalBySession,
+        bestLapByDriverSession
+      };
+    }
+
+    function getActiveQualiSession(cache, replayTime, isReplay) {
+      const sessions = cache.sessions || [];
+      if (sessions.length === 0) return 1;
+      const sortedDesc = sessions.slice().sort((a, b) => b - a);
+      if (!isReplay || !Number.isFinite(replayTime)) {
+        return sortedDesc[0];
+      }
+      for (const session of sortedDesc) {
+        const start = cache.sessionStartTimes.get(session);
+        if (Number.isFinite(start) && replayTime >= start) {
+          return session;
+        }
+      }
+      return sortedDesc[sortedDesc.length - 1];
+    }
+
+    function computeBestThisSession(cache, sessionNumber, replayTime, isReplay) {
+      const best = new Map();
+      const hasReplay = isReplay && Number.isFinite(replayTime);
+
+      const ensureEntry = (driver) => {
+        if (!best.has(driver)) {
+          best.set(driver, { lap: Infinity, s1: Infinity, s2: Infinity, s3: Infinity });
+        }
+        return best.get(driver);
+      };
+
+      cache.rows.forEach(row => {
+        if (row.session !== sessionNumber || !row.validLap) return;
+
+        const entry = ensureEntry(row.driver);
+
+        if (Number.isFinite(row.lapTime)) {
+          const lapReady = !hasReplay || (Number.isFinite(row.lapEndTime) && row.lapEndTime <= replayTime);
+          if (lapReady && row.lapTime < entry.lap) entry.lap = row.lapTime;
+        }
+
+        if (Number.isFinite(row.s1)) {
+          const s1Ready = !hasReplay || (Number.isFinite(row.s1Time) && row.s1Time <= replayTime);
+          if (s1Ready && row.s1 < entry.s1) entry.s1 = row.s1;
+        }
+
+        if (Number.isFinite(row.s2)) {
+          const s2Ready = !hasReplay || (Number.isFinite(row.s2Time) && row.s2Time <= replayTime);
+          if (s2Ready && row.s2 < entry.s2) entry.s2 = row.s2;
+        }
+
+        if (Number.isFinite(row.s3)) {
+          const s3Ready = !hasReplay || (Number.isFinite(row.s3Time) && row.s3Time <= replayTime);
+          if (s3Ready && row.s3 < entry.s3) entry.s3 = row.s3;
+        }
+      });
+
+      best.forEach(entry => {
+        entry.lap = Number.isFinite(entry.lap) ? entry.lap : null;
+        entry.s1 = Number.isFinite(entry.s1) ? entry.s1 : null;
+        entry.s2 = Number.isFinite(entry.s2) ? entry.s2 : null;
+        entry.s3 = Number.isFinite(entry.s3) ? entry.s3 : null;
+      });
+
+      return best;
+    }
+
+    function findActiveLap(laps, replayTime) {
+      if (!Array.isArray(laps) || laps.length === 0 || !Number.isFinite(replayTime)) return null;
+
+      let lo = 0;
+      let hi = laps.length - 1;
+      let idx = -1;
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        const start = laps[mid].lapStartTime;
+        if (!Number.isFinite(start)) {
+          hi = mid - 1;
+          continue;
+        }
+        if (start <= replayTime) {
+          idx = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      if (idx === -1) return null;
+      const candidate = laps[idx];
+      if (Number.isFinite(candidate.lapEndTime) && replayTime > candidate.lapEndTime) {
+        return null;
+      }
+      return candidate;
+    }
+
+    function findLastLapBeforeTime(laps, replayTime) {
+      if (!Array.isArray(laps) || laps.length === 0) return null;
+      if (!Number.isFinite(replayTime)) return laps[laps.length - 1];
+      let last = null;
+      for (let i = 0; i < laps.length; i++) {
+        const lapEnd = laps[i].lapEndTime;
+        if (!Number.isFinite(lapEnd)) continue;
+        if (lapEnd <= replayTime) {
+          last = laps[i];
+        }
+      }
+      return last;
+    }
+
+    function getLiveLapDisplay(activeLap, replayTime) {
+      if (!activeLap || !Number.isFinite(replayTime)) return null;
+      if (!Number.isFinite(activeLap.lapStartTime)) return null;
+
+      const lapElapsed = Math.max(0, replayTime - activeLap.lapStartTime);
+      let lapCell = { kind: 'ticking', value: lapElapsed };
+      if (Number.isFinite(activeLap.lapEndTime) &&
+          replayTime >= activeLap.lapEndTime &&
+          Number.isFinite(activeLap.lapTime)) {
+        lapCell = { kind: 'final', value: activeLap.lapTime };
+      }
+
+      const s1Cell = (Number.isFinite(activeLap.s1Time) && replayTime >= activeLap.s1Time && Number.isFinite(activeLap.s1))
+        ? { kind: 'final', value: activeLap.s1 }
+        : { kind: 'ticking', value: null };
+
+      const s2Cell = (Number.isFinite(activeLap.s2Time) && replayTime >= activeLap.s2Time && Number.isFinite(activeLap.s2))
+        ? { kind: 'final', value: activeLap.s2 }
+        : { kind: 'ticking', value: null };
+
+      const s3Cell = (Number.isFinite(activeLap.s3Time) && replayTime >= activeLap.s3Time && Number.isFinite(activeLap.s3))
+        ? { kind: 'final', value: activeLap.s3 }
+        : { kind: 'ticking', value: null };
+
+      return { lap: lapCell, s1: s1Cell, s2: s2Cell, s3: s3Cell };
+    }
+
+    function getQualiStatus({ isReplay, activeLap, lastLap, isHotLap, isHotLast, hasAnyLap }) {
+      if (!isReplay) {
+        return hasAnyLap ? 'Finished lap' : 'In garage';
+      }
+
+      if (activeLap) {
+        if (isHotLap) return 'On hot lap';
+        if (!Number.isFinite(activeLap.lapTime)) {
+          if (Number.isFinite(activeLap.pitOutTime)) return 'Out lap';
+          if (Number.isFinite(activeLap.pitInTime)) return 'In lap';
+          return 'Out lap';
+        }
+        if (Number.isFinite(activeLap.pitInTime)) return 'In lap';
+        return 'Out lap';
+      }
+
+      if (lastLap) {
+        if (isHotLast) return 'Finished lap';
+        if (Number.isFinite(lastLap.pitInTime)) return 'In garage';
+        return 'In garage';
+      }
+
+      return 'In garage';
+    }
+
+    function getQualiCellFlashClass(cellKey, cellState, nextStates) {
+      const prev = qualiPreviousCellStates.get(cellKey);
+      const currentKind = cellState?.kind || 'empty';
+      const currentValue = Number.isFinite(cellState?.value) ? cellState.value : null;
+      const next = { kind: currentKind, value: currentValue };
+
+      let shouldFlash = false;
+      const isInitialRender = qualiPreviousCellStates.size === 0;
+      if (!isInitialRender && currentKind === 'final') {
+        if (!prev || prev.kind !== 'final') {
+          shouldFlash = true;
+        } else if (Number.isFinite(prev.value) && Number.isFinite(currentValue)) {
+          shouldFlash = Math.abs(prev.value - currentValue) > 0.0005;
+        }
+      }
+
+      nextStates.set(cellKey, next);
+      return shouldFlash ? ' quali-cell-flash' : '';
+    }
+
+    function renderQualiCell(cell, baseline, cellKey, nextStates) {
+      if (!cell || cell.kind === 'empty') {
+        nextStates.set(cellKey, { kind: 'empty', value: null });
+        return '<span class="quali-placeholder">--</span>';
+      }
+
+      if (cell.kind === 'ticking') {
+        const displayValue = Number.isFinite(cell.value) ? `${formatQualiTime(cell.value)}...` : '...';
+        nextStates.set(cellKey, { kind: 'ticking', value: null });
+        return `<div class="quali-cell"><div class="quali-time ticking">${displayValue}</div></div>`;
+      }
+
+      const flashClass = getQualiCellFlashClass(cellKey, cell, nextStates);
+      const timeText = formatQualiTime(cell.value);
+      const deltaText = Number.isFinite(baseline) ? formatQualiDelta(cell.value - baseline) : '';
+      return `<div class="quali-cell"><div class="quali-time${flashClass}">${timeText}</div><div class="quali-delta">${deltaText}</div></div>`;
+    }
+
+    function initializeQualiPanel() {
+      const replayTime = replayConfig.enabled ? parseFloat(replaySlider.value) : null;
+      renderQualiTable(replayTime);
+    }
+
+    let qualiListenerSetup = false;
+
+    function setupQualiReplayListener() {
+      if (qualiListenerSetup) return;
+      const listener = (eventData) => {
+        if (appState.currentActiveTab !== 'quali') return;
+        renderQualiTable(eventData.replayTime);
+      };
+      replayEventEmitter.subscribe(ReplayEvents.TIME_TICK, listener);
+      qualiListenerSetup = true;
+    }
+
+    function renderQualiTable(replayTimeOverride = null) {
+      const container = document.getElementById('qualiTableContainer');
+      if (!container) return;
+
+      if (!qualiCache || !Array.isArray(qualiCache.rows) || qualiCache.rows.length === 0) {
+        container.innerHTML = '<div style="color: white; padding: 16px; text-align: center;">No qualifying data available for this event.</div>';
+        return;
+      }
+
+      const year = appState.session.season;
+      const [round] = appState.session.gp.split('||');
+      const sessionType = 'Q';
+      const driverColors = DriverInfo.getDriverColors(year, round, sessionType);
+
+      const isReplay = replayConfig.enabled && Number.isFinite(replayTimeOverride);
+      const replayTime = isReplay ? replayTimeOverride : null;
+
+      const activeSession = getActiveQualiSession(qualiCache, replayTime, isReplay);
+      const bestCurrent = computeBestThisSession(qualiCache, activeSession, replayTime, isReplay);
+      const bestFinalBySession = qualiCache.bestFinalBySession;
+
+      const drivers = qualiCache.drivers.slice();
+
+      let leaderDriver = null;
+      let leaderLap = null;
+      drivers.forEach(driver => {
+        const bestLap = bestCurrent.get(driver)?.lap;
+        if (!Number.isFinite(bestLap)) return;
+        if (!Number.isFinite(leaderLap) || bestLap < leaderLap) {
+          leaderLap = bestLap;
+          leaderDriver = driver;
+        }
+      });
+
+      const sortedDrivers = drivers.slice().sort((a, b) => {
+        const lapA = bestCurrent.get(a)?.lap;
+        const lapB = bestCurrent.get(b)?.lap;
+        const aValid = Number.isFinite(lapA);
+        const bValid = Number.isFinite(lapB);
+        if (aValid && bValid) {
+          if (lapA !== lapB) return lapA - lapB;
+          return a.localeCompare(b);
+        }
+        if (aValid) return -1;
+        if (bValid) return 1;
+        return a.localeCompare(b);
+      });
+
+      const positionByDriver = new Map();
+      let posCounter = 1;
+      sortedDrivers.forEach(driver => {
+        const lap = bestCurrent.get(driver)?.lap;
+        if (Number.isFinite(lap)) {
+          positionByDriver.set(driver, posCounter);
+          posCounter += 1;
+        }
+      });
+
+      const activeLapByDriver = new Map();
+      const liveLapByDriver = new Map();
+      const lastLapByDriver = new Map();
+      const hotLapByDriver = new Map();
+      const hotLastByDriver = new Map();
+
+      if (isReplay) {
+        qualiCache.lapsByDriver.forEach((laps, driver) => {
+          const activeLap = findActiveLap(laps, replayTime);
+          if (activeLap) {
+            activeLapByDriver.set(driver, activeLap);
+          }
+
+          const lastLap = findLastLapBeforeTime(laps, replayTime);
+          if (lastLap) {
+            lastLapByDriver.set(driver, lastLap);
+          }
+
+          if (activeLap) {
+            const bestLap = qualiCache.bestLapByDriverSession.get(activeLap.session)?.get(driver);
+            const isHot = Number.isFinite(activeLap.lapTime) && Number.isFinite(bestLap) && activeLap.lapTime <= bestLap + 2;
+            hotLapByDriver.set(driver, isHot);
+            if (isHot) {
+              const liveDisplay = getLiveLapDisplay(activeLap, replayTime);
+              liveLapByDriver.set(driver, liveDisplay);
+            }
+          }
+
+          if (lastLap) {
+            const bestLap = qualiCache.bestLapByDriverSession.get(lastLap.session)?.get(driver);
+            const wasHot = Number.isFinite(lastLap.lapTime) && Number.isFinite(bestLap) && lastLap.lapTime <= bestLap + 2;
+            hotLastByDriver.set(driver, wasHot);
+          }
+        });
+      }
+
+      const getBestMapForSession = (sessionNumber) => {
+        if (sessionNumber === activeSession) return bestCurrent;
+        return bestFinalBySession.get(sessionNumber) || new Map();
+      };
+
+      const sessionNumbers = [3, 2, 1];
+      const leaderBaselineBySession = new Map();
+      sessionNumbers.forEach(sessionNumber => {
+        const map = getBestMapForSession(sessionNumber);
+        const leaderBest = leaderDriver ? map.get(leaderDriver) : null;
+        leaderBaselineBySession.set(sessionNumber, leaderBest || null);
+      });
+
+      const leaderLive = leaderDriver ? liveLapByDriver.get(leaderDriver) : null;
+      const leaderLiveBaseline = {
+        lap: leaderLive?.lap?.kind === 'final' ? leaderLive.lap.value : null,
+        s1: leaderLive?.s1?.kind === 'final' ? leaderLive.s1.value : null,
+        s2: leaderLive?.s2?.kind === 'final' ? leaderLive.s2.value : null,
+        s3: leaderLive?.s3?.kind === 'final' ? leaderLive.s3.value : null
+      };
+
+      const nextCellStates = new Map();
+
+      let html = '<table class="quali-table"><thead>';
+      html += '<tr>';
+      html += '<th class="sticky-col sticky-col-1" rowspan="2">Pos</th>';
+      html += '<th class="sticky-col sticky-col-2" rowspan="2">Driver</th>';
+      html += '<th class="sticky-col sticky-col-3" rowspan="2">Gap</th>';
+      html += '<th class="sticky-col sticky-col-4" rowspan="2">Status</th>';
+      html += '<th colspan="4">Live Lap</th>';
+      html += '<th colspan="4">Best Q3</th>';
+      html += '<th colspan="4">Best Q2</th>';
+      html += '<th colspan="4">Best Q1</th>';
+      html += '</tr>';
+      html += '<tr>';
+      html += '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>';
+      html += '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>';
+      html += '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>';
+      html += '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>';
+      html += '</tr></thead><tbody>';
+
+      sortedDrivers.forEach(driver => {
+        const position = positionByDriver.get(driver) || '';
+        const isHotLap = hotLapByDriver.get(driver) === true;
+        const rowClass = isHotLap ? 'hot-lap' : '';
+
+        const bestLapCurrent = bestCurrent.get(driver)?.lap;
+        const gap = Number.isFinite(bestLapCurrent) && Number.isFinite(leaderLap)
+          ? formatQualiDelta(bestLapCurrent - leaderLap)
+          : '';
+
+        const activeLap = activeLapByDriver.get(driver);
+        const lastLap = lastLapByDriver.get(driver);
+        const hasAnyLap = qualiCache.lapsByDriver.get(driver)?.length > 0;
+        const status = getQualiStatus({
+          isReplay,
+          activeLap,
+          lastLap,
+          isHotLap,
+          isHotLast: hotLastByDriver.get(driver) === true,
+          hasAnyLap
+        });
+
+        html += `<tr class="${rowClass}" data-driver="${driver}">`;
+
+        html += `<td class="sticky-col sticky-col-1 quali-position">${position}</td>`;
+
+        const driverColor = driverColors.get(driver) || '#888888';
+        html += `<td class="sticky-col sticky-col-2"><div class="quali-driver"><span class="quali-driver-strip" style="background:${driverColor};"></span><span class="quali-driver-code">${driver}</span></div></td>`;
+        html += `<td class="sticky-col sticky-col-3 quali-gap">${gap}</td>`;
+        html += `<td class="sticky-col sticky-col-4 quali-status">${status}</td>`;
+
+        const liveLap = isReplay ? liveLapByDriver.get(driver) : null;
+        const liveCells = isReplay && liveLap ? liveLap : null;
+
+        html += `<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
+        html += `<td>${isReplay ? renderQualiCell(liveCells?.s1, leaderLiveBaseline.s1, `${driver}|live|s1`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
+        html += `<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveBaseline.s2, `${driver}|live|s2`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
+        html += `<td>${isReplay ? renderQualiCell(liveCells?.s3, leaderLiveBaseline.s3, `${driver}|live|s3`, nextCellStates) : '<span class="quali-placeholder">--</span>'}</td>`;
+
+        sessionNumbers.forEach(sessionNumber => {
+          const sessionMap = getBestMapForSession(sessionNumber);
+          const best = sessionMap.get(driver) || {};
+          const leaderBest = leaderBaselineBySession.get(sessionNumber);
+
+          const lapBaseline = leaderBest?.lap ?? null;
+          const s1Baseline = leaderBest?.s1 ?? null;
+          const s2Baseline = leaderBest?.s2 ?? null;
+          const s3Baseline = leaderBest?.s3 ?? null;
+
+          const lapCell = Number.isFinite(best.lap) ? { kind: 'final', value: best.lap } : { kind: 'empty' };
+          const s1Cell = Number.isFinite(best.s1) ? { kind: 'final', value: best.s1 } : { kind: 'empty' };
+          const s2Cell = Number.isFinite(best.s2) ? { kind: 'final', value: best.s2 } : { kind: 'empty' };
+          const s3Cell = Number.isFinite(best.s3) ? { kind: 'final', value: best.s3 } : { kind: 'empty' };
+
+          const groupClass = 'quali-group-start';
+
+          html += `<td class="${groupClass}">${renderQualiCell(lapCell, lapBaseline, `${driver}|q${sessionNumber}|lap`, nextCellStates)}</td>`;
+          html += `<td>${renderQualiCell(s1Cell, s1Baseline, `${driver}|q${sessionNumber}|s1`, nextCellStates)}</td>`;
+          html += `<td>${renderQualiCell(s2Cell, s2Baseline, `${driver}|q${sessionNumber}|s2`, nextCellStates)}</td>`;
+          html += `<td>${renderQualiCell(s3Cell, s3Baseline, `${driver}|q${sessionNumber}|s3`, nextCellStates)}</td>`;
+        });
+
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+      qualiPreviousCellStates = nextCellStates;
     }
 
     function renderStrategyChart(rows, year, round, sessionType) {
