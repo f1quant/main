@@ -2541,7 +2541,6 @@
     <!-- Tab Navigation -->
     <div class="tab-navigation">
       <button class="tab-button active" data-tab="timing">Timing</button>
-      <button class="tab-button" data-tab="quali">Quali</button>
       <button class="tab-button" data-tab="race-trace">Trace</button>
       <button class="tab-button" data-tab="strategy">Strategy</button>
       <button class="tab-button" data-tab="fuel-effect" data-tooltip="Compares laps for the same (driver, compound, tyre life) at different fuel loads. 'Copy Average to Calculator' to apply to other tabs.">Fuel Effect</button>
@@ -2549,6 +2548,7 @@
       <button class="tab-button" data-tab="pit-loss" data-tooltip="Compares pit in & out laps to the surrounding laps.">Pit Loss</button>
       <button class="tab-button" data-tab="calculator" data-tooltip="Calculates the optimal free-air tyre strategy and compares it to other strategies">Calculator</button>
       <button class="tab-button" data-tab="track-temp">Track Temp</button>
+      <button class="tab-button" data-tab="quali">Quali</button>
       <span class="status-message" id="statusMessage">Loading...</span>
       <button id="reloadDataBtn" type="button" title="Reload data from server">Reload Data</button>
       <button id="modeBtn" type="button" title="Configure viewing mode">Mode: Off</button>
@@ -2652,11 +2652,6 @@
         </div>
       </div>
       <div id="lapTimeSummaryTableContainer"></div>
-    </div>
-
-    <!-- Quali Panel -->
-    <div id="quali-panel" class="content-panel">
-      <div id="qualiTableContainer" class="quali-table-wrapper"></div>
     </div>
 
     <!-- Strategy Panel -->
@@ -3109,6 +3104,11 @@
       </div>
     </div>
 
+    <!-- Quali Panel -->
+    <div id="quali-panel" class="content-panel">
+      <div id="qualiTableContainer" class="quali-table-wrapper"></div>
+    </div>
+
   </div>
   </div>
 
@@ -3169,6 +3169,7 @@
     let currentSessionData = null; // Stores filtered data for current session (with replay filter applied if active)
     let currentSessionDataUnfiltered = null; // Stores session data without replay time filter
     let currentQualiDataUnfiltered = [];
+    let currentQualiSessionType = 'Q';
     let qualiCache = null;
     let qualiPreviousCellStates = new Map();
     let replayTimeline = []; // Chronological list of lap/sector events for timing replay
@@ -4027,7 +4028,9 @@
         }
       });
 
-      const sortedSessions = Array.from(sessions).sort((a, b) => {
+      const sortedSessions = Array.from(sessions)
+        .filter(isRaceOrSprintSession)
+        .sort((a, b) => {
         return getSessionOrderValue(a) - getSessionOrderValue(b);
       });
 
@@ -4216,6 +4219,11 @@
         default:
           return sessionType;
       }
+    }
+
+    function isRaceOrSprintSession(sessionType) {
+      const normalized = String(sessionType || "").trim().toUpperCase();
+      return normalized === 'R' || normalized === 'S';
     }
 
     function getSpoilerPreferenceValues() {
@@ -4478,7 +4486,9 @@
       appState.session.gp = gpValue;
 
       // Populate sessions for the selected GP
-      UIHelpers.populateSessions(sessionSel, sessionsByKey, season, gpValue, {});
+      UIHelpers.populateSessions(sessionSel, sessionsByKey, season, gpValue, {
+        sessionFilter: isRaceOrSprintSession
+      });
       sessionSel.value = sessionType;
       appState.session.sessionType = sessionType;
 
@@ -5649,6 +5659,7 @@
       currentSessionDataUnfiltered = null;
 
       UIHelpers.populateSessions(sessionSel, sessionsByKey, selectedSeason, selectedGP, {
+        sessionFilter: isRaceOrSprintSession
         // onChange: onSessionChange
       });
 
@@ -5686,18 +5697,30 @@
       if (!selectedSeason || !selectedGP || !Array.isArray(allRows) || allRows.length === 0) {
         currentQualiDataUnfiltered = [];
         qualiCache = null;
+        currentQualiSessionType = 'Q';
         qualiPreviousCellStates = new Map();
         return;
       }
 
       const [round, meeting] = selectedGP.split('||');
-      currentQualiDataUnfiltered = allRows.filter(r => {
+      const eventQualiRows = allRows.filter(r => {
         return String(r.year || "").trim() === selectedSeason &&
                String(r.round_no || "").trim() === round &&
                String(r.meeting_name || "").trim() === meeting &&
-               String(r.session_type || "").trim().toUpperCase() === 'Q';
+               ['Q', 'SQ'].includes(String(r.session_type || "").trim().toUpperCase());
       });
 
+      const availableTypes = new Set(eventQualiRows.map(r => String(r.session_type || "").trim().toUpperCase()));
+      const selectedSession = String(sessionSel.value || "").trim().toUpperCase();
+      const preferredQuali = selectedSession === 'S' ? 'SQ' : 'Q';
+      const resolvedType = availableTypes.has(preferredQuali)
+        ? preferredQuali
+        : (availableTypes.has('Q') ? 'Q' : (availableTypes.has('SQ') ? 'SQ' : preferredQuali));
+
+      currentQualiSessionType = resolvedType;
+      currentQualiDataUnfiltered = eventQualiRows.filter(r =>
+        String(r.session_type || "").trim().toUpperCase() === resolvedType
+      );
       qualiCache = buildQualiCache(currentQualiDataUnfiltered);
       qualiPreviousCellStates = new Map();
     }
@@ -7150,7 +7173,7 @@
 
       const year = appState.session.season;
       const [round] = appState.session.gp.split('||');
-      const sessionType = 'Q';
+      const sessionType = currentQualiSessionType || 'Q';
       const driverColors = DriverInfo.getDriverColors(year, round, sessionType);
 
       const isReplay = replayConfig.enabled && Number.isFinite(replayTimeOverride);

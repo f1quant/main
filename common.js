@@ -484,7 +484,7 @@ const UIHelpers = {
   // Populate sessions for a given season and GP from sessionsByKey Map
   // Prefers 'R' (Race) by default, otherwise selects first
   populateSessions(selectElement, sessionsByKey, selectedSeason, selectedGP, options = {}) {
-    const { onChange = null, preferredSession = 'R' } = options;
+    const { onChange = null, preferredSession = 'R', sessionFilter = null } = options;
 
     selectElement.innerHTML = '';
     selectElement.disabled = true;
@@ -493,12 +493,16 @@ const UIHelpers = {
 
     const [round, meeting] = selectedGP.split('||');
 
-    const sessions = [];
+    let sessions = [];
     sessionsByKey.forEach((val) => {
       if (val.year === selectedSeason && val.round_no === round && val.meeting_name === meeting) {
         sessions.push(val.session_type);
       }
     });
+
+    if (typeof sessionFilter === 'function') {
+      sessions = sessions.filter(sessionFilter);
+    }
 
     return this.populateSelect(selectElement, sessions, {
       filterEmpty: true,
