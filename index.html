@@ -677,6 +677,14 @@
       min-height: 10px;
     }
 
+    .quali-delta.negative {
+      color: #02FF00;
+    }
+
+    .quali-delta.positive {
+      color: #ff3333;
+    }
+
     .quali-placeholder {
       color: var(--muted-color);
     }
@@ -7318,10 +7326,18 @@
       const timeText = timeFormatter(cell.value);
       const deltaValue = Number.isFinite(options.deltaValue) ? options.deltaValue : cell.value;
       const deltaBaseline = Number.isFinite(options.deltaBaseline) ? options.deltaBaseline : baseline;
-      const deltaText = (Number.isFinite(deltaBaseline) && Number.isFinite(deltaValue))
-        ? formatQualiDelta(deltaValue - deltaBaseline)
-        : '';
-      return `<div class="quali-cell"><div class="quali-time${flashClass}${timeClass}">${timeText}</div><div class="quali-delta">${deltaText}</div></div>`;
+      let deltaText = '';
+      let deltaClass = '';
+      if (Number.isFinite(deltaBaseline) && Number.isFinite(deltaValue)) {
+        const delta = deltaValue - deltaBaseline;
+        deltaText = formatQualiDelta(delta);
+        if (delta < 0) {
+          deltaClass = ' negative';
+        } else if (delta > 0) {
+          deltaClass = ' positive';
+        }
+      }
+      return `<div class="quali-cell"><div class="quali-time${flashClass}${timeClass}">${timeText}</div><div class="quali-delta${deltaClass}">${deltaText}</div></div>`;
     }
 
     function getQualiLiveSectorClass(cell, sessionBest, personalBest) {
