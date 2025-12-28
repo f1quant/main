@@ -7349,6 +7349,96 @@
       return 'timing-normal-sector';
     }
 
+    const QUALI_REORDER_ANIM_MS = 1000;
+    let qualiRenderOrder = [];
+    let qualiReorderLockedUntil = 0;
+
+    function getQualiTableHeaderHtml() {
+      return (
+        '<tr>' +
+          '<th class="sticky-col sticky-col-1" rowspan="2">Pos</th>' +
+          '<th class="sticky-col sticky-col-2" rowspan="2">Driver</th>' +
+          '<th class="sticky-col sticky-col-3" rowspan="2">Gap</th>' +
+          '<th colspan="4">Live Lap</th>' +
+          '<th colspan="4">Best Q3</th>' +
+          '<th colspan="4">Best Q2</th>' +
+          '<th colspan="4">Best Q1</th>' +
+        '</tr>' +
+        '<tr>' +
+          '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>' +
+          '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>' +
+          '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>' +
+          '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>' +
+        '</tr>'
+      );
+    }
+
+    function isSameOrder(a, b) {
+      if (!Array.isArray(a) || !Array.isArray(b)) return false;
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i += 1) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    }
+
+    function getQualiRowPositions(container) {
+      const positions = new Map();
+      if (!container) return positions;
+      const rows = container.querySelectorAll('tbody tr[data-driver]');
+      rows.forEach(row => {
+        const driver = row.dataset.driver;
+        if (!driver) return;
+        positions.set(driver, row.offsetTop);
+      });
+      return positions;
+    }
+
+    // FLIP animation to smooth row reordering in the quali table.
+    function animateQualiRowReorder(container, prevPositions, nextPositions) {
+      if (!container || !prevPositions || prevPositions.size === 0 || !nextPositions) return;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const rows = Array.from(container.querySelectorAll('tbody tr[data-driver]'));
+      const moved = [];
+
+      rows.forEach(row => {
+        const driver = row.dataset.driver;
+        if (!driver) return;
+        const prevTop = prevPositions.get(driver);
+        const nextTop = nextPositions.get(driver);
+        if (!Number.isFinite(prevTop) || !Number.isFinite(nextTop)) return;
+        const delta = prevTop - nextTop;
+        if (Math.abs(delta) < 1) return;
+        moved.push({ row, delta });
+      });
+
+      if (moved.length === 0) return;
+
+      moved.forEach(({ row, delta }) => {
+        row.style.transition = 'none';
+        row.style.transform = `translateY(${delta}px)`;
+        row.style.willChange = 'transform';
+      });
+
+      requestAnimationFrame(() => {
+        moved.forEach(({ row }) => {
+          row.style.transition = `transform ${QUALI_REORDER_ANIM_MS}ms ease`;
+          row.style.transform = 'translateY(0)';
+        });
+        const cleanup = (event) => {
+          if (event.propertyName !== 'transform') return;
+          const target = event.currentTarget;
+          target.style.willChange = '';
+          target.style.transition = '';
+          target.removeEventListener('transitionend', cleanup);
+        };
+        moved.forEach(({ row }) => {
+          row.addEventListener('transitionend', cleanup);
+        });
+      });
+    }
+
     function initializeQualiPanel() {
       const replayTime = replayConfig.enabled ? parseFloat(replaySlider.value) : null;
       renderQualiTable(replayTime);
@@ -7372,8 +7462,24 @@
 
       if (!qualiCache || !Array.isArray(qualiCache.rows) || qualiCache.rows.length === 0) {
         container.innerHTML = '<div style="color: white; padding: 16px; text-align: center;">No qualifying data available for this event.</div>';
+        qualiRenderOrder = [];
+        qualiReorderLockedUntil = 0;
         return;
       }
+
+      let table = container.querySelector('table.quali-table');
+      if (!table) {
+        container.innerHTML = '';
+        table = document.createElement('table');
+        table.className = 'quali-table';
+        const thead = document.createElement('thead');
+        thead.innerHTML = getQualiTableHeaderHtml();
+        const tbody = document.createElement('tbody');
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        container.appendChild(table);
+      }
+      const tbody = table.querySelector('tbody');
 
       const year = appState.session.season;
       const [round] = appState.session.gp.split('||');
@@ -7382,6 +7488,13 @@
 
       const isReplay = replayConfig.enabled && Number.isFinite(replayTimeOverride);
       const replayTime = isReplay ? replayTimeOverride : null;
+      const now = (typeof performance !== 'undefined' && performance.now)
+        ? performance.now()
+        : Date.now();
+      if (!isReplay) {
+        qualiRenderOrder = [];
+        qualiReorderLockedUntil = 0;
+      }
 
       const activeSession = getActiveQualiSession(qualiCache, replayTime, isReplay);
       const bestCurrent = computeBestThisSession(qualiCache, activeSession, replayTime, isReplay);
@@ -7506,25 +7619,44 @@
 
       const nextCellStates = new Map();
 
-      let html = '<table class="quali-table"><thead>';
-      html += '<tr>';
-      html += '<th class="sticky-col sticky-col-1" rowspan="2">Pos</th>';
-      html += '<th class="sticky-col sticky-col-2" rowspan="2">Driver</th>';
-      html += '<th class="sticky-col sticky-col-3" rowspan="2">Gap</th>';
-      html += '<th colspan="4">Live Lap</th>';
-      html += '<th colspan="4">Best Q3</th>';
-      html += '<th colspan="4">Best Q2</th>';
-      html += '<th colspan="4">Best Q1</th>';
-      html += '</tr>';
-      html += '<tr>';
-      html += '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>';
-      html += '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>';
-      html += '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>';
-      html += '<th class="quali-group-start">Lap</th><th>S1</th><th>S2</th><th>S3</th>';
-      html += '</tr></thead><tbody>';
+      const targetOrder = sortedDrivers.map(entry => entry.driver);
+      const prevOrder = qualiRenderOrder.slice();
+      let renderOrder = prevOrder;
+      let shouldReorderDom = false;
+      let shouldAnimateReorder = false;
 
-      sortedDrivers.forEach(entry => {
-        const driver = entry.driver;
+      if (!isReplay) {
+        renderOrder = targetOrder.slice();
+        shouldReorderDom = !isSameOrder(prevOrder, renderOrder);
+        qualiRenderOrder = renderOrder.slice();
+      } else if (prevOrder.length === 0 || prevOrder.length !== targetOrder.length) {
+        renderOrder = targetOrder.slice();
+        shouldReorderDom = true;
+        qualiRenderOrder = renderOrder.slice();
+      } else if (now >= qualiReorderLockedUntil && !isSameOrder(prevOrder, targetOrder)) {
+        renderOrder = targetOrder.slice();
+        shouldReorderDom = true;
+        shouldAnimateReorder = true;
+        qualiRenderOrder = renderOrder.slice();
+        qualiReorderLockedUntil = now + QUALI_REORDER_ANIM_MS;
+      } else {
+        renderOrder = prevOrder;
+      }
+
+      const prevPositions = shouldAnimateReorder ? getQualiRowPositions(container) : null;
+      const existingRows = new Map();
+      tbody.querySelectorAll('tr[data-driver]').forEach(row => {
+        const driver = row.dataset.driver;
+        if (driver) {
+          existingRows.set(driver, row);
+        }
+      });
+      const entryByDriver = new Map(sortedDrivers.map(entry => [entry.driver, entry]));
+      const fragment = document.createDocumentFragment();
+
+      renderOrder.forEach(driver => {
+        const entry = entryByDriver.get(driver);
+        if (!entry) return;
         const position = positionByDriver.get(driver) || '';
         const isHotLap = hotLapByDriver.get(driver) === true;
         const rowClass = isHotLap ? 'hot-lap' : '';
@@ -7534,13 +7666,15 @@
           ? formatQualiDelta(bestLapCurrent - leaderLap)
           : '';
 
-        html += `<tr class="${rowClass}" data-driver="${driver}">`;
-
-        html += `<td class="sticky-col sticky-col-1 quali-position">${position}</td>`;
+        let row = existingRows.get(driver);
+        const hadRow = Boolean(row);
+        if (!row) {
+          row = document.createElement('tr');
+          row.dataset.driver = driver;
+        }
+        row.className = rowClass;
 
         const driverColor = driverColors.get(driver) || '#888888';
-        html += `<td class="sticky-col sticky-col-2"><div class="quali-driver"><span class="quali-driver-strip" style="background:${driverColor};"></span><span class="quali-driver-code">${driver}</span></div></td>`;
-        html += `<td class="sticky-col sticky-col-3 quali-gap">${gap}</td>`;
 
         const liveLap = isReplay ? liveLapByDriver.get(driver) : null;
         const liveCells = isReplay && liveLap ? liveLap : null;
@@ -7552,10 +7686,14 @@
           ? liveCells.s1.value + liveCells.s2.value
           : null;
 
-        html += `<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates, { timeFormatter: formatQualiLiveTime }) : '<span class="quali-placeholder">--</span>'}</td>`;
-        html += `<td>${isReplay ? renderQualiCell(liveCells?.s1, leaderLiveSectorBaseline.s1, `${driver}|live|s1`, nextCellStates, { timeClass: liveS1Class }) : '<span class="quali-placeholder">--</span>'}</td>`;
-        html += `<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveSectorBaseline.s2, `${driver}|live|s2`, nextCellStates, { timeClass: liveS2Class, deltaValue: liveS2DeltaValue, deltaBaseline: leaderLiveSectorBaselineCumS2 }) : '<span class="quali-placeholder">--</span>'}</td>`;
-        html += `<td>${isReplay ? renderQualiCell(liveCells?.s3, leaderLiveSectorBaseline.s3, `${driver}|live|s3`, nextCellStates, { timeClass: liveS3Class }) : '<span class="quali-placeholder">--</span>'}</td>`;
+        const cells = [];
+        cells.push(`<td class="sticky-col sticky-col-1 quali-position">${position}</td>`);
+        cells.push(`<td class="sticky-col sticky-col-2"><div class="quali-driver"><span class="quali-driver-strip" style="background:${driverColor};"></span><span class="quali-driver-code">${driver}</span></div></td>`);
+        cells.push(`<td class="sticky-col sticky-col-3 quali-gap">${gap}</td>`);
+        cells.push(`<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates, { timeFormatter: formatQualiLiveTime }) : '<span class="quali-placeholder">--</span>'}</td>`);
+        cells.push(`<td>${isReplay ? renderQualiCell(liveCells?.s1, leaderLiveSectorBaseline.s1, `${driver}|live|s1`, nextCellStates, { timeClass: liveS1Class }) : '<span class="quali-placeholder">--</span>'}</td>`);
+        cells.push(`<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveSectorBaseline.s2, `${driver}|live|s2`, nextCellStates, { timeClass: liveS2Class, deltaValue: liveS2DeltaValue, deltaBaseline: leaderLiveSectorBaselineCumS2 }) : '<span class="quali-placeholder">--</span>'}</td>`);
+        cells.push(`<td>${isReplay ? renderQualiCell(liveCells?.s3, leaderLiveSectorBaseline.s3, `${driver}|live|s3`, nextCellStates, { timeClass: liveS3Class }) : '<span class="quali-placeholder">--</span>'}</td>`);
 
         sessionNumbers.forEach(sessionNumber => {
           const showSession = shouldShowSession(sessionNumber);
@@ -7575,18 +7713,30 @@
 
           const groupClass = 'quali-group-start';
 
-          html += `<td class="${groupClass}">${renderQualiCell(lapCell, lapBaseline, `${driver}|q${sessionNumber}|lap`, nextCellStates)}</td>`;
-          html += `<td>${renderQualiCell(s1Cell, s1Baseline, `${driver}|q${sessionNumber}|s1`, nextCellStates)}</td>`;
-          html += `<td>${renderQualiCell(s2Cell, s2Baseline, `${driver}|q${sessionNumber}|s2`, nextCellStates)}</td>`;
-          html += `<td>${renderQualiCell(s3Cell, s3Baseline, `${driver}|q${sessionNumber}|s3`, nextCellStates)}</td>`;
+          cells.push(`<td class="${groupClass}">${renderQualiCell(lapCell, lapBaseline, `${driver}|q${sessionNumber}|lap`, nextCellStates)}</td>`);
+          cells.push(`<td>${renderQualiCell(s1Cell, s1Baseline, `${driver}|q${sessionNumber}|s1`, nextCellStates)}</td>`);
+          cells.push(`<td>${renderQualiCell(s2Cell, s2Baseline, `${driver}|q${sessionNumber}|s2`, nextCellStates)}</td>`);
+          cells.push(`<td>${renderQualiCell(s3Cell, s3Baseline, `${driver}|q${sessionNumber}|s3`, nextCellStates)}</td>`);
         });
 
-        html += '</tr>';
+        row.innerHTML = cells.join('');
+        if (shouldReorderDom) {
+          fragment.appendChild(row);
+        } else if (!hadRow) {
+          tbody.appendChild(row);
+        }
+        existingRows.delete(driver);
       });
 
-      html += '</tbody></table>';
-      container.innerHTML = html;
+      existingRows.forEach(row => row.remove());
+      if (shouldReorderDom) {
+        tbody.appendChild(fragment);
+      }
       qualiPreviousCellStates = nextCellStates;
+      if (shouldAnimateReorder) {
+        const nextPositions = getQualiRowPositions(container);
+        animateQualiRowReorder(container, prevPositions, nextPositions);
+      }
     }
 
     function renderStrategyChart(rows, year, round, sessionType) {
