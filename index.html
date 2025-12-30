@@ -2158,6 +2158,41 @@
       font-size: 0.75rem;
     }
 
+    .calculator-stints-table {
+      margin-top: 8px;
+      margin-bottom: 10px;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+
+    .calculator-stints-table th,
+    .calculator-stints-table td {
+      border: 1px solid var(--border-color);
+      padding: 5px 7px;
+      text-align: center;
+      color: var(--muted-color);
+    }
+
+    .calculator-stints-table th {
+      background: rgba(0, 224, 255, 0.08);
+      font-weight: 500;
+      color: var(--accent-color);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .calculator-stints-table td {
+      color: var(--text-color);
+    }
+
+    .calculator-stints-table td input.calculator-field-input,
+    .calculator-stints-table td select.calculator-field-input {
+      padding: 4px 6px;
+      font-size: 0.75rem;
+    }
+
     #calculatorScProbTable {
       margin-top: 6px;
       width: 100%;
@@ -3059,6 +3094,61 @@
               </tbody>
             </table>
 
+            <h3>Race Progress</h3>
+            <div class="calculator-race-params-list">
+              <div class="calculator-race-param-row">
+                <span class="calculator-field-label">Current lap</span>
+                <input type="number" id="calculatorCurrentLap" class="calculator-field-input" min="1" />
+              </div>
+            </div>
+            <table class="calculator-stints-table">
+              <thead>
+                <tr>
+                  <th>Stint</th>
+                  <th>End lap</th>
+                  <th>Compound</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td><input type="number" id="calculatorStint1End" class="calculator-field-input" min="1" /></td>
+                  <td>
+                    <select id="calculatorStint1Compound" class="calculator-field-input">
+                      <option value=""></option>
+                      <option value="S">Soft</option>
+                      <option value="M">Medium</option>
+                      <option value="H">Hard</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td><input type="number" id="calculatorStint2End" class="calculator-field-input" min="1" /></td>
+                  <td>
+                    <select id="calculatorStint2Compound" class="calculator-field-input">
+                      <option value=""></option>
+                      <option value="S">Soft</option>
+                      <option value="M">Medium</option>
+                      <option value="H">Hard</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td><input type="number" id="calculatorStint3End" class="calculator-field-input" min="1" /></td>
+                  <td>
+                    <select id="calculatorStint3Compound" class="calculator-field-input">
+                      <option value=""></option>
+                      <option value="S">Soft</option>
+                      <option value="M">Medium</option>
+                      <option value="H">Hard</option>
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
             <h3>Safety Car Probability</h3>
             <div class="calculator-small-note">
               Non-overlapping ranges. Final range must leave "To lap" blank (extends to end).
@@ -3273,6 +3363,12 @@
         paceM: null,
         paceH: null,
         tyreMaxAge: 100,
+        currentLap: null,
+        stints: [
+          { endLap: null, compound: '' },
+          { endLap: null, compound: '' },
+          { endLap: null, compound: '' }
+        ],
         scProbRanges: [
           {from:'1', to: '1', prob: '26.1'},
           {from:'2', to: '2', prob: '4.9'},
@@ -3361,6 +3457,12 @@
         paceM: null,
         paceH: null,
         tyreMaxAge: 100,
+        currentLap: null,
+        stints: [
+          { endLap: null, compound: '' },
+          { endLap: null, compound: '' },
+          { endLap: null, compound: '' }
+        ],
         scProbRanges: [] // Array of {fromLap, toLap, probability}
       }
     };
@@ -8320,11 +8422,25 @@ function updateSelectedDrivers(mutator, options = {}) {
       }
     }
 
+    function normalizeCalculatorStints(rawStints) {
+      const normalized = [];
+      const source = Array.isArray(rawStints) ? rawStints : [];
+      for (let i = 0; i < 3; i += 1) {
+        const entry = source[i] || {};
+        const endLapRaw = Number.isFinite(entry.endLap) ? entry.endLap : parseInt(entry.endLap, 10);
+        const endLap = Number.isFinite(endLapRaw) ? endLapRaw : null;
+        const compound = typeof entry.compound === 'string' ? entry.compound.trim().toUpperCase() : '';
+        normalized.push({ endLap, compound });
+      }
+      return normalized;
+    }
+
     function renderCalculatorInputsFromState(options = {}) {
       const skipSet = new Set(options.skip || []);
       const calculatorPitLoss = document.getElementById('calculatorPitLoss');
       const calculatorScLength = document.getElementById('calculatorScLength');
       const calculatorNumLaps = document.getElementById('calculatorNumLaps');
+      const calculatorCurrentLap = document.getElementById('calculatorCurrentLap');
       const calculatorLapLimit = document.getElementById('calculatorLapLimit');
       const calculatorPaceS = document.getElementById('calculatorPaceS');
       const calculatorPaceM = document.getElementById('calculatorPaceM');
@@ -8348,6 +8464,11 @@ function updateSelectedDrivers(mutator, options = {}) {
         calculatorScLength.value = value === null || value === undefined ? '' : value;
       }
 
+      if (calculatorCurrentLap && !skipSet.has('calculatorCurrentLap')) {
+        const value = appState.calculator.currentLap;
+        calculatorCurrentLap.value = value === null || value === undefined ? '' : value;
+      }
+
       if (calculatorLapLimit && !skipSet.has('calculatorLapLimit')) {
         const value = appState.calculator.tyreMaxAge;
         calculatorLapLimit.value = value === null || value === undefined ? '' : value;
@@ -8368,6 +8489,24 @@ function updateSelectedDrivers(mutator, options = {}) {
       if (calculatorDegS && !skipSet.has('calculatorDegS')) calculatorDegS.value = appState.paceModel.degSoft;
       if (calculatorDegM && !skipSet.has('calculatorDegM')) calculatorDegM.value = appState.paceModel.degMedium;
       if (calculatorDegH && !skipSet.has('calculatorDegH')) calculatorDegH.value = appState.paceModel.degHard;
+
+      const stints = normalizeCalculatorStints(appState.calculator.stints);
+      const stintFields = [
+        { endId: 'calculatorStint1End', compId: 'calculatorStint1Compound', idx: 0 },
+        { endId: 'calculatorStint2End', compId: 'calculatorStint2Compound', idx: 1 },
+        { endId: 'calculatorStint3End', compId: 'calculatorStint3Compound', idx: 2 }
+      ];
+      stintFields.forEach(({ endId, compId, idx }) => {
+        const endInput = document.getElementById(endId);
+        const compInput = document.getElementById(compId);
+        const entry = stints[idx];
+        if (endInput && !skipSet.has(endId)) {
+          endInput.value = Number.isFinite(entry.endLap) ? entry.endLap : '';
+        }
+        if (compInput && !skipSet.has(compId)) {
+          compInput.value = entry.compound || '';
+        }
+      });
     }
 
     function renderCalculatorStrategyInputsFromState() {
@@ -12786,12 +12925,23 @@ setupTyreDegFilterModal();
     }
 
     // Main DP Algorithm
-    function calcComputePolicy(numLaps, compounds, fuelEffect, scProbRanges, scLength, pitLoss, rule, tyreMaxAge) {
+    function calcComputePolicy(
+      numLaps,
+      compounds,
+      fuelEffect,
+      scProbRanges,
+      scLength,
+      pitLoss,
+      rule,
+      tyreMaxAge,
+      startAge
+    ) {
       const scProb = {};
       for (let lap = 1; lap <= numLaps; lap++) {
         scProb[lap] = calcGetScProb(lap, scProbRanges);
       }
       const maxAge = Number.isFinite(tyreMaxAge) ? tyreMaxAge : numLaps;
+      const ageOffset = Number.isFinite(startAge) && startAge > 0 ? startAge : 0;
 
       const dpExp = new Map();
       const policy = new Map();
@@ -12803,7 +12953,7 @@ setupTyreDegFilterModal();
           const metaCompounds = entry.compounds;
           for (const compIdx of metaCompounds) {
             for (let scStatus = 0; scStatus <= 1; scStatus++) {
-              const ageCap = Math.min(lap - 1, maxAge);
+              const ageCap = Math.min(lap - 1 + ageOffset, maxAge);
               for (let age = 0; age <= ageCap; age++) {
                 const key = calcStateKey(lap, compIdx, age, scStatus, meta);
 
@@ -12939,15 +13089,21 @@ setupTyreDegFilterModal();
       return { dpExp, policy };
     }
 
-    function calcExtractNoScStrategy(rule, startCompIdx, numLaps, policy, tyreMaxAge) {
-      let meta = rule.initMeta(startCompIdx);
+    function calcExtractNoScStrategy(rule, startCompIdx, numLaps, policy, tyreMaxAge, options) {
+      const opts = options || {};
+      const metaOverride = opts.startMeta;
+      const startAge = Number.isFinite(opts.startAge) && opts.startAge > 0 ? opts.startAge : 0;
+      let meta = metaOverride !== undefined ? metaOverride : rule.initMeta(startCompIdx);
       if (meta == null) return [];
 
       const stints = [];
       let compIdx = startCompIdx;
-      let age = 0;
+      let age = startAge;
       let currentStintStart = 1;
       const maxAge = Number.isFinite(tyreMaxAge) ? tyreMaxAge : numLaps;
+      if (age > maxAge) {
+        throw new Error(`Starting tyre age (${age}) exceeds lap limit (${maxAge}).`);
+      }
 
       for (let lap = 1; lap <= numLaps; lap++) {
         const key = calcStateKey(lap, compIdx, age, 0, meta);
@@ -13069,7 +13225,7 @@ setupTyreDegFilterModal();
           .split(/[\,\s>\-]+/)
           .map((t) => t.trim().toUpperCase())
           .filter((t) => t);
-        if (tokens.length < 2 || tokens.length > 4) return;
+        if (tokens.length > 4) return;
         if (!tokens.every((t) => t === 'S' || t === 'M' || t === 'H')) return;
         parsed.push(tokens);
       });
@@ -13168,7 +13324,13 @@ setupTyreDegFilterModal();
       stintsDom.innerHTML = html;
     }
 
-    function updateCalculatorLapTimeChart(combinedResults, compounds, numLaps, fuelEffect) {
+    function updateCalculatorLapTimeChart(
+      combinedResults,
+      compounds,
+      numLaps,
+      fuelEffect,
+      startAge
+    ) {
       const dom = document.getElementById("calculatorLapTimeChart");
       if (!dom) return;
 
@@ -13191,18 +13353,24 @@ setupTyreDegFilterModal();
       }
 
       const series = [];
+      const initialAge = Number.isFinite(startAge) && startAge > 0 ? startAge : 0;
 
       combinedResults.forEach((r) => {
         const data = [];
+        let stintIndex = 0;
         r.stints.forEach(([ci, sLap, eLap]) => {
           for (let lap = sLap; lap <= eLap; lap++) {
-            const age = lap - sLap;
+            let age = lap - sLap;
+            if (stintIndex === 0 && initialAge > 0) {
+              age += initialAge;
+            }
             const lt = calcLapTime(ci, age, lap, compounds, fuelEffect);
             data.push({
               value: [lap, lt],
               compIdx: ci
             });
           }
+          stintIndex += 1;
         });
         data.sort((a, b) => a[0] - b[0]);
 
@@ -13271,6 +13439,140 @@ setupTyreDegFilterModal();
       calculatorLapTimeChart.setOption(option, true);
     }
 
+    function getTwoCompoundStartMeta(startCompIdx, usedCompIdxs) {
+      if (!usedCompIdxs || usedCompIdxs.size === 0) return startCompIdx;
+      if (usedCompIdxs.size >= 2) return -1;
+      const only = Array.from(usedCompIdxs)[0];
+      return only === startCompIdx ? startCompIdx : -1;
+    }
+
+    function adjustStintsForLapOffset(stints, lapOffset) {
+      if (!lapOffset) return stints;
+      return stints.map(([ci, s, e]) => [ci, s + lapOffset, e + lapOffset]);
+    }
+
+    function buildFullStrategyLabel(stints, pastCompIdxs, compounds) {
+      const seq = [];
+      if (Array.isArray(pastCompIdxs)) {
+        pastCompIdxs.forEach((ci) => {
+          if (ci === null || ci === undefined) return;
+          const type = compounds[ci]?.type ?? String(ci);
+          seq.push(type);
+        });
+      }
+      if (Array.isArray(stints)) {
+        stints.forEach(([ci]) => {
+          const type = compounds[ci]?.type ?? String(ci);
+          seq.push(type);
+        });
+      }
+      return seq.join("→");
+    }
+
+    function parseCalculatorRaceProgress(numLaps, typeToIdx) {
+      const rawCurrentLap = appState.calculator.currentLap;
+      const currentLapValue = Number.isFinite(rawCurrentLap)
+        ? rawCurrentLap
+        : parseInt(document.getElementById('calculatorCurrentLap')?.value, 10);
+      const stints = normalizeCalculatorStints(appState.calculator.stints);
+      const hasStints = stints.some(entry => entry.compound || Number.isFinite(entry.endLap));
+      const pastCompIdxs = [];
+
+      if (!Number.isFinite(currentLapValue)) {
+        if (!hasStints) return null;
+        throw new Error("Current lap is required when entering stints.");
+      }
+
+      const currentLap = parseInt(currentLapValue, 10);
+      if (!Number.isFinite(currentLap) || currentLap < 1) {
+        throw new Error("Current lap must be a positive integer.");
+      }
+      if (currentLap > numLaps) {
+        throw new Error("Current lap cannot exceed Num laps.");
+      }
+      if (!hasStints && currentLap <= 1) return null;
+      if (!hasStints) {
+        throw new Error("Enter completed stints or clear Current lap.");
+      }
+
+      let prevEnd = 0;
+      let inProgress = null;
+      let encounteredGap = false;
+      stints.forEach((entry, idx) => {
+        const hasEnd = Number.isFinite(entry.endLap);
+        const compound = entry.compound;
+        const hasComp = Boolean(compound);
+
+        if (!hasEnd && !hasComp) {
+          encounteredGap = true;
+          return;
+        }
+        if (encounteredGap) {
+          throw new Error("Fill stints in order without gaps.");
+        }
+        if (hasEnd && !hasComp) {
+          throw new Error(`Stint ${idx + 1} needs a compound.`);
+        }
+        if (hasComp && typeToIdx[compound] === undefined) {
+          throw new Error(`Stint ${idx + 1} compound must be S, M, or H.`);
+        }
+        if (!hasEnd && hasComp) {
+          if (inProgress) {
+            throw new Error("Only the last stint can be in progress.");
+          }
+          const startLap = prevEnd + 1;
+          if (startLap > currentLap) {
+            throw new Error("Current lap must be within the active stint.");
+          }
+          inProgress = { compound, startLap };
+          encounteredGap = true;
+          return;
+        }
+        if (hasEnd) {
+          if (entry.endLap <= prevEnd) {
+            throw new Error("Stint end laps must be increasing.");
+          }
+          if (entry.endLap >= currentLap) {
+            throw new Error("Stint end lap must be before the current lap.");
+          }
+          prevEnd = entry.endLap;
+          pastCompIdxs.push(typeToIdx[compound]);
+        }
+      });
+
+      if (!inProgress && prevEnd !== currentLap - 1) {
+        throw new Error("Stints must cover all laps up to the current lap.");
+      }
+
+      const remainingLaps = numLaps - currentLap + 1;
+      if (remainingLaps <= 0) {
+        throw new Error("No laps remaining to optimize.");
+      }
+
+      const usedCompIdxs = new Set();
+      stints.forEach(entry => {
+        if (entry.compound && typeToIdx[entry.compound] !== undefined) {
+          usedCompIdxs.add(typeToIdx[entry.compound]);
+        }
+      });
+
+      const startCompType = inProgress ? inProgress.compound : null;
+      const startCompIdx = startCompType ? typeToIdx[startCompType] : null;
+      const startAge = inProgress ? currentLap - inProgress.startLap : 0;
+
+      return {
+        currentLap,
+        remainingLaps,
+        lapOffset: currentLap - 1,
+        usedCompIdxs,
+        pastCompIdxs,
+        startCompIdx,
+        startCompType,
+        startAge,
+        inProgress: Boolean(inProgress)
+      };
+    }
+
     // Main Calculator Run
     function runCalculatorSimulation() {
       const errorBox = document.getElementById("calculatorErrorBox");
@@ -13309,14 +13611,72 @@ setupTyreDegFilterModal();
         const typeToIdx = {};
         compounds.forEach((c, i) => { typeToIdx[c.type.toUpperCase()] = i; });
 
+        const raceProgress = parseCalculatorRaceProgress(numLaps, typeToIdx);
+        let remainingLaps = numLaps;
+        let lapOffset = 0;
+        let usedCompIdxs = new Set();
+        let pastCompIdxs = [];
+        let startCompIdx = null;
+        let startAge = 0;
+        let inProgress = false;
+
+        if (raceProgress) {
+          remainingLaps = raceProgress.remainingLaps;
+          lapOffset = raceProgress.lapOffset;
+          usedCompIdxs = raceProgress.usedCompIdxs;
+          pastCompIdxs = raceProgress.pastCompIdxs || [];
+          startCompIdx = raceProgress.startCompIdx;
+          startAge = raceProgress.startAge;
+          inProgress = raceProgress.inProgress;
+        }
+
+        if (inProgress && startAge > tyreMaxAge) {
+          throw new Error("Current stint exceeds the lap limit.");
+        }
+
         // Baseline free rule (not plotted)
         const freeRule = new TwoCompoundTyreRule(compoundIndices);
-        const freeSummary = calcSummarizeResults(
-          numLaps, compounds, fuelEffect, scProbRanges, scLength, pitLoss, freeRule, tyreMaxAge
+        const { dpExp: freeDpExp, policy: freePolicy } = calcComputePolicy(
+          remainingLaps,
+          compounds,
+          fuelEffect,
+          scProbRanges,
+          scLength,
+          pitLoss,
+          freeRule,
+          tyreMaxAge,
+          startAge
         );
 
-        const freeEntries = Object.entries(freeSummary.results)
-          .filter(([, info]) => Number.isFinite(info.expected_time));
+        const startCandidates = inProgress ? [startCompIdx] : compoundIndices;
+        const freeEntries = [];
+
+        startCandidates.forEach((startIdx) => {
+          if (startIdx === null || startIdx === undefined) return;
+          const startMeta = raceProgress
+            ? getTwoCompoundStartMeta(startIdx, usedCompIdxs)
+            : freeRule.initMeta(startIdx);
+          if (startMeta == null) return;
+          const key0 = calcStateKey(1, startIdx, startAge, 0, startMeta);
+          const expectedTime = freeDpExp.get(key0);
+          if (!Number.isFinite(expectedTime)) return;
+          const stints = calcExtractNoScStrategy(
+            freeRule,
+            startIdx,
+            remainingLaps,
+            freePolicy,
+            tyreMaxAge,
+            { startAge, startMeta }
+          );
+          if (!stints || !stints.length) return;
+          const displayStints = raceProgress ? adjustStintsForLapOffset(stints, lapOffset) : stints;
+          freeEntries.push({
+            startIdx,
+            expected_time: expectedTime,
+            stints,
+            displayStints
+          });
+        });
 
         if (freeEntries.length === 0) {
           throw new Error("No valid free strategies; check inputs.");
@@ -13326,22 +13686,23 @@ setupTyreDegFilterModal();
         let optimalEntry = null;
         let baselineFree = INF;
 
-        for (const [startType, info] of freeEntries) {
-          if (info.expected_time < baselineFree) {
-            baselineFree = info.expected_time;
-            optimalEntry = { startType, info };
+        freeEntries.forEach((entry) => {
+          if (entry.expected_time < baselineFree) {
+            baselineFree = entry.expected_time;
+            optimalEntry = entry;
           }
-        }
+        });
 
-        if (!optimalEntry || !optimalEntry.info.no_sc_stints || !optimalEntry.info.no_sc_stints.length) {
+        if (!optimalEntry) {
           throw new Error("Unable to compute an optimal two-compound strategy.");
         }
 
         // Tyre sequence of the optimal strategy under no SC
-        const optimalStints = optimalEntry.info.no_sc_stints;
-        const optimalTyreSeq = optimalStints
-          .map(([ci]) => compounds[ci].type)
-          .join("→");
+        const optimalTyreSeq = buildFullStrategyLabel(
+          optimalEntry.stints,
+          pastCompIdxs,
+          compounds
+        );
 
         // Always include optimal two-compound strategy first
         const combinedResults = [];
@@ -13350,7 +13711,7 @@ setupTyreDegFilterModal();
         combinedResults.push({
           label: optimalTyreSeq,
           expected_time: baselineFree,
-          stints: optimalStints,
+          stints: optimalEntry.displayStints,
           isBaseline: true
         });
         seenLabels.add(optimalTyreSeq);
@@ -13368,23 +13729,52 @@ setupTyreDegFilterModal();
           }
           if (!valid) continue;
 
-          const rule = new PatternUnlessSCTyreRule(patternIndices, compoundIndices);
-          const summary = calcSummarizeResults(
-            numLaps, compounds, fuelEffect, scProbRanges, scLength, pitLoss, rule, tyreMaxAge
+          let effectivePattern = patternIndices;
+          if (inProgress && startCompIdx !== null && startCompIdx !== undefined) {
+            effectivePattern = [startCompIdx, ...patternIndices];
+          }
+
+          if (raceProgress && usedCompIdxs.size === 1) {
+            const only = Array.from(usedCompIdxs)[0];
+            const hasDifferent = effectivePattern.some((ci) => ci !== only);
+            if (!hasDifferent) continue;
+          }
+
+          const rule = new PatternUnlessSCTyreRule(effectivePattern, compoundIndices);
+          const { dpExp, policy } = calcComputePolicy(
+            remainingLaps,
+            compounds,
+            fuelEffect,
+            scProbRanges,
+            scLength,
+            pitLoss,
+            rule,
+            tyreMaxAge,
+            startAge
           );
-          const entries = Object.entries(summary.results);
-          if (entries.length === 0) continue;
+          const meta0 = rule.initMeta(effectivePattern[0]);
+          if (meta0 == null) continue;
+          const key0 = calcStateKey(1, effectivePattern[0], startAge, 0, meta0);
+          const expectedTime = dpExp.get(key0);
+          if (!Number.isFinite(expectedTime)) continue;
+          const stints = calcExtractNoScStrategy(
+            rule,
+            effectivePattern[0],
+            remainingLaps,
+            policy,
+            tyreMaxAge,
+            { startAge, startMeta: meta0 }
+          );
+          if (!stints || !stints.length) continue;
 
-          const [startType, info] = entries[0];
-          if (!Number.isFinite(info.expected_time)) continue;
-
-          const label = pattern.join("→");
+          const label = buildFullStrategyLabel(stints, pastCompIdxs, compounds);
           if (seenLabels.has(label)) continue; // don't duplicate optimal
 
+          const displayStints = raceProgress ? adjustStintsForLapOffset(stints, lapOffset) : stints;
           combinedResults.push({
             label,
-            expected_time: info.expected_time,
-            stints: info.no_sc_stints
+            expected_time: expectedTime,
+            stints: displayStints
           });
           seenLabels.add(label);
         }
@@ -13394,11 +13784,11 @@ setupTyreDegFilterModal();
         }
 
         updateCalculatorCombinedChartAndStints(combinedResults, compounds, baselineFree);
-        updateCalculatorLapTimeChart(combinedResults, compounds, numLaps, fuelEffect);
+        updateCalculatorLapTimeChart(combinedResults, compounds, numLaps, fuelEffect, startAge);
       } catch (e) {
         errorBox.textContent = e.message;
         updateCalculatorCombinedChartAndStints([], [], NaN);
-        updateCalculatorLapTimeChart([], [], NaN, NaN);
+        updateCalculatorLapTimeChart([], [], NaN, NaN, NaN);
       }
     }
 
@@ -13678,6 +14068,17 @@ setupTyreDegFilterModal();
       }
       renderCalculatorInputsFromState({ skip: ['calculatorNumLaps'] });
     });
+    document.getElementById('calculatorCurrentLap').addEventListener('input', function() {
+      const text = this.value.trim();
+      if (text === '') {
+        saveToState('calculator.currentLap', null);
+      } else {
+        const value = parseInt(text, 10);
+        if (!Number.isFinite(value) || value <= 0) return;
+        saveToState('calculator.currentLap', value);
+      }
+      renderCalculatorInputsFromState({ skip: ['calculatorCurrentLap'] });
+    });
     document.getElementById('calculatorPitLoss').addEventListener('input', function() {
       const text = this.value.trim();
       if (text === '') {
@@ -13710,6 +14111,34 @@ setupTyreDegFilterModal();
         saveToState('calculator.tyreMaxAge', value);
       }
       renderCalculatorInputsFromState({ skip: ['calculatorLapLimit'] });
+    });
+    const calculatorStintInputs = [
+      { endId: 'calculatorStint1End', compId: 'calculatorStint1Compound', idx: 0 },
+      { endId: 'calculatorStint2End', compId: 'calculatorStint2Compound', idx: 1 },
+      { endId: 'calculatorStint3End', compId: 'calculatorStint3Compound', idx: 2 }
+    ];
+    calculatorStintInputs.forEach(({ endId, compId, idx }) => {
+      const endInput = document.getElementById(endId);
+      const compInput = document.getElementById(compId);
+      if (endInput) {
+        endInput.addEventListener('input', function() {
+          const stints = normalizeCalculatorStints(appState.calculator.stints);
+          const text = this.value.trim();
+          const value = text === '' ? null : parseInt(text, 10);
+          if (text !== '' && !Number.isFinite(value)) return;
+          stints[idx].endLap = Number.isFinite(value) ? value : null;
+          saveToState('calculator.stints', stints);
+          renderCalculatorInputsFromState({ skip: [endId] });
+        });
+      }
+      if (compInput) {
+        compInput.addEventListener('input', function() {
+          const stints = normalizeCalculatorStints(appState.calculator.stints);
+          stints[idx].compound = String(this.value || '').trim().toUpperCase();
+          saveToState('calculator.stints', stints);
+          renderCalculatorInputsFromState({ skip: [compId] });
+        });
+      }
     });
     document.getElementById('calculatorFuelEffect').addEventListener('input', function() {
       const value = parseFloat(this.value);
