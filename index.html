@@ -3051,6 +3051,9 @@
                   <input type="text" class="calculator-field-input calculatorStrategyInput" placeholder="e.g., M,M,H" />
                   <input type="text" class="calculator-field-input calculatorStrategyInput" placeholder="e.g., S,M,M,H" />
                 </div>
+                <div class="calculator-small-note" style="margin-top:4px;">
+                  Hint: enter NOPIT for no more stops
+                </div>
               </div>
 
               <div class="calculator-race-params-col">
@@ -13384,7 +13387,14 @@ setupTyreDegFilterModal();
       const parsed = [];
       strategies.forEach((raw) => {
         if (!raw) return;
-        const tokens = raw
+        const rawText = String(raw || '').trim();
+        if (!rawText) return;
+        const rawUpper = rawText.toUpperCase();
+        if (rawUpper === 'NOPIT' || rawUpper === 'NO PIT' || rawUpper === 'NO-PIT') {
+          parsed.push([]);
+          return;
+        }
+        const tokens = rawText
           .split(/[\,\s>\-]+/)
           .map((t) => t.trim().toUpperCase())
           .filter((t) => t);
