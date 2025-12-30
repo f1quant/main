@@ -2193,6 +2193,19 @@
       font-size: 0.75rem;
     }
 
+    .calculator-race-progress-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .calculator-race-progress-header .calculator-field-input {
+      width: auto;
+      min-width: 160px;
+    }
+
     #calculatorScProbTable {
       margin-top: 6px;
       width: 100%;
@@ -3094,7 +3107,12 @@
               </tbody>
             </table>
 
-            <h3>Race Progress</h3>
+            <div class="calculator-race-progress-header">
+              <h3>Race Progress</h3>
+              <select id="calculatorRaceProgressDriver" class="calculator-field-input" aria-label="Populate race progress from driver">
+                <option value="">Select driver</option>
+              </select>
+            </div>
             <div class="calculator-race-params-list">
               <div class="calculator-race-param-row">
                 <span class="calculator-field-label">Current lap</span>
@@ -8435,6 +8453,141 @@ function updateSelectedDrivers(mutator, options = {}) {
       return normalized;
     }
 
+    function normalizeCompoundLetter(compound) {
+      const value = String(compound || '').trim().toUpperCase();
+      if (!value) return '';
+      if (value === 'SOFT' || value === 'S') return 'S';
+      if (value === 'MEDIUM' || value === 'M') return 'M';
+      if (value === 'HARD' || value === 'H') return 'H';
+      return '';
+    }
+
+    function renderCalculatorRaceProgressDriverOptions(sessionData) {
+      const select = document.getElementById('calculatorRaceProgressDriver');
+      if (!select) return;
+      const baseRows = (currentSessionDataUnfiltered && currentSessionDataUnfiltered.length > 0)
+        ? currentSessionDataUnfiltered
+        : sessionData;
+      const currentValue = select.value;
+      select.innerHTML = '<option value="">Select driver</option>';
+      if (!baseRows || baseRows.length === 0) return;
+
+      const driverFinishInfo = extractDriverFinishingInfo(baseRows);
+      const sortedDriverInfo = sortDriversByFinishingOrder(driverFinishInfo);
+      sortedDriverInfo.forEach(({ driver }) => {
+        if (!driver) return;
+        const opt = document.createElement('option');
+        opt.value = driver;
+        opt.textContent = driver;
+        select.appendChild(opt);
+      });
+
+      if (currentValue && sortedDriverInfo.some(info => info.driver === currentValue)) {
+        select.value = currentValue;
+      }
+    }
+
+    function buildCalculatorRaceProgressFromDriver(driver) {
+      const driverCode = String(driver || '').trim();
+      if (!driverCode) return null;
+      const baseRows = (currentSessionDataUnfiltered && currentSessionDataUnfiltered.length > 0)
+        ? currentSessionDataUnfiltered
+        : currentSessionData;
+      if (!baseRows || baseRows.length === 0) return null;
+
+      const driverRows = baseRows.filter(r => String(r.lap_Driver || '').trim() === driverCode);
+      if (driverRows.length === 0) return null;
+
+      const replayTime = replayConfig.enabled && replaySlider ? parseFloat(replaySlider.value) : NaN;
+      const hasReplayTime = replayConfig.enabled && Number.isFinite(replayTime);
+      const completedRows = hasReplayTime
+        ? driverRows.filter(r => {
+            const lapTime = parseFloat(r.lap_Time);
+            return Number.isFinite(lapTime) && lapTime <= replayTime;
+          })
+        : driverRows;
+
+      const stintsByNumber = new Map();
+      completedRows.forEach(row => {
+        const lapNum = parseInt(row.lap_LapNumber, 10);
+        const stintNum = parseInt(row.lap_Stint, 10);
+        const compound = normalizeCompoundLetter(row.lap_Compound);
+        if (!Number.isFinite(lapNum) || !Number.isFinite(stintNum) || !compound) return;
+
+        if (!stintsByNumber.has(stintNum)) {
+          stintsByNumber.set(stintNum, {
+            stint: stintNum,
+            compound,
+            startLap: lapNum,
+            endLap: lapNum
+          });
+        } else {
+          const entry = stintsByNumber.get(stintNum);
+          entry.startLap = Math.min(entry.startLap, lapNum);
+          entry.endLap = Math.max(entry.endLap, lapNum);
+        }
+      });
+
+      const stints = Array.from(stintsByNumber.values()).sort((a, b) => a.stint - b.stint);
+
+      let currentLap = 1;
+      let currentStintNumber = null;
+      let currentCompound = '';
+
+      const inProgress = replayConfig.enabled ? timingInProgressLaps.get(driverCode) : null;
+      if (inProgress && Number.isFinite(inProgress.lapNum)) {
+        currentLap = inProgress.lapNum;
+        const inProgRow = driverRows.find(r => parseInt(r.lap_LapNumber, 10) === inProgress.lapNum);
+        const inProgStint = parseInt(inProgRow?.lap_Stint, 10);
+        if (Number.isFinite(inProgStint)) {
+          currentStintNumber = inProgStint;
+        }
+        currentCompound = normalizeCompoundLetter(inProgRow?.lap_Compound || inProgress.tyre || '');
+      } else if (completedRows.length > 0) {
+        const maxLap = Math.max(...completedRows.map(r => parseInt(r.lap_LapNumber, 10)).filter(Number.isFinite));
+        if (Number.isFinite(maxLap)) {
+          currentLap = maxLap + 1;
+        }
+      } else if (hasReplayTime) {
+        currentLap = Math.max(1, calculateCurrentLap(replayTime));
+      }
+
+      const inputStints = [];
+      stints.forEach(stint => {
+        const isCurrent = Number.isFinite(currentStintNumber) && stint.stint === currentStintNumber;
+        inputStints.push({
+          endLap: isCurrent ? null : stint.endLap,
+          compound: (isCurrent ? (currentCompound || stint.compound) : stint.compound)
+        });
+      });
+
+      if (Number.isFinite(currentStintNumber) &&
+          !stints.some(stint => stint.stint === currentStintNumber) &&
+          currentCompound) {
+        inputStints.push({ endLap: null, compound: currentCompound });
+      }
+
+      const nextStints = [];
+      for (let i = 0; i < 3; i += 1) {
+        const entry = inputStints[i] || {};
+        nextStints.push({
+          endLap: Number.isFinite(entry.endLap) ? entry.endLap : null,
+          compound: entry.compound || ''
+        });
+      }
+
+      return { currentLap, stints: nextStints };
+    }
+
+    function applyCalculatorRaceProgressFromDriver(driver) {
+      const progress = buildCalculatorRaceProgressFromDriver(driver);
+      if (!progress) return;
+      saveToState('calculator.currentLap', progress.currentLap);
+      saveToState('calculator.stints', progress.stints);
+      renderCalculatorInputsFromState();
+      runCalculatorSimulation();
+    }
+
     function renderCalculatorInputsFromState(options = {}) {
       const skipSet = new Set(options.skip || []);
       const calculatorPitLoss = document.getElementById('calculatorPitLoss');
@@ -13093,19 +13246,29 @@ setupTyreDegFilterModal();
       const opts = options || {};
       const metaOverride = opts.startMeta;
       const startAge = Number.isFinite(opts.startAge) && opts.startAge > 0 ? opts.startAge : 0;
+      const startLap = Number.isFinite(opts.startLap) ? opts.startLap : 1;
       let meta = metaOverride !== undefined ? metaOverride : rule.initMeta(startCompIdx);
       if (meta == null) return [];
 
       const stints = [];
       let compIdx = startCompIdx;
       let age = startAge;
-      let currentStintStart = 1;
+      let currentStintStart = Number.isFinite(opts.currentStintStart)
+        ? opts.currentStintStart
+        : startLap;
       const maxAge = Number.isFinite(tyreMaxAge) ? tyreMaxAge : numLaps;
       if (age > maxAge) {
         throw new Error(`Starting tyre age (${age}) exceeds lap limit (${maxAge}).`);
       }
 
-      for (let lap = 1; lap <= numLaps; lap++) {
+      if (!Number.isFinite(startLap) || startLap < 1 || startLap > numLaps) {
+        throw new Error(`Start lap (${startLap}) must be between 1 and ${numLaps}.`);
+      }
+      if (!Number.isFinite(currentStintStart) || currentStintStart < 1 || currentStintStart > startLap) {
+        throw new Error(`Current stint start (${currentStintStart}) must be between 1 and ${startLap}.`);
+      }
+
+      for (let lap = startLap; lap <= numLaps; lap++) {
         const key = calcStateKey(lap, compIdx, age, 0, meta);
         const action = policy.get(key);
         if (!action)
@@ -13469,6 +13632,16 @@ setupTyreDegFilterModal();
       return seq.join("→");
     }
 
+    function getLabelPastCompIdxs(pastCompIdxs, currentCompIdx, stints, inProgress) {
+      if (!inProgress || currentCompIdx === null || currentCompIdx === undefined) {
+        return pastCompIdxs;
+      }
+      if (Array.isArray(stints) && stints.length > 0 && stints[0][0] === currentCompIdx) {
+        return pastCompIdxs;
+      }
+      return pastCompIdxs.concat([currentCompIdx]);
+    }
+
     function parseCalculatorRaceProgress(numLaps, typeToIdx) {
       const rawCurrentLap = appState.calculator.currentLap;
       const currentLapValue = Number.isFinite(rawCurrentLap)
@@ -13612,32 +13785,30 @@ setupTyreDegFilterModal();
         compounds.forEach((c, i) => { typeToIdx[c.type.toUpperCase()] = i; });
 
         const raceProgress = parseCalculatorRaceProgress(numLaps, typeToIdx);
-        let remainingLaps = numLaps;
-        let lapOffset = 0;
+        let currentLap = 1;
+        let currentAge = 0;
+        let currentCompIdx = null;
         let usedCompIdxs = new Set();
         let pastCompIdxs = [];
-        let startCompIdx = null;
-        let startAge = 0;
         let inProgress = false;
 
         if (raceProgress) {
-          remainingLaps = raceProgress.remainingLaps;
-          lapOffset = raceProgress.lapOffset;
+          currentLap = raceProgress.currentLap;
+          currentAge = raceProgress.startAge;
+          currentCompIdx = raceProgress.startCompIdx;
           usedCompIdxs = raceProgress.usedCompIdxs;
           pastCompIdxs = raceProgress.pastCompIdxs || [];
-          startCompIdx = raceProgress.startCompIdx;
-          startAge = raceProgress.startAge;
           inProgress = raceProgress.inProgress;
         }
 
-        if (inProgress && startAge > tyreMaxAge) {
+        if (inProgress && currentAge > tyreMaxAge) {
           throw new Error("Current stint exceeds the lap limit.");
         }
 
         // Baseline free rule (not plotted)
         const freeRule = new TwoCompoundTyreRule(compoundIndices);
         const { dpExp: freeDpExp, policy: freePolicy } = calcComputePolicy(
-          remainingLaps,
+          numLaps,
           compounds,
           fuelEffect,
           scProbRanges,
@@ -13645,11 +13816,12 @@ setupTyreDegFilterModal();
           pitLoss,
           freeRule,
           tyreMaxAge,
-          startAge
+          0
         );
 
-        const startCandidates = inProgress ? [startCompIdx] : compoundIndices;
+        const startCandidates = inProgress ? [currentCompIdx] : compoundIndices;
         const freeEntries = [];
+        const currentStintStart = inProgress ? currentLap - currentAge : currentLap;
 
         startCandidates.forEach((startIdx) => {
           if (startIdx === null || startIdx === undefined) return;
@@ -13657,24 +13829,23 @@ setupTyreDegFilterModal();
             ? getTwoCompoundStartMeta(startIdx, usedCompIdxs)
             : freeRule.initMeta(startIdx);
           if (startMeta == null) return;
-          const key0 = calcStateKey(1, startIdx, startAge, 0, startMeta);
+          const age0 = inProgress ? currentAge : 0;
+          const key0 = calcStateKey(currentLap, startIdx, age0, 0, startMeta);
           const expectedTime = freeDpExp.get(key0);
           if (!Number.isFinite(expectedTime)) return;
           const stints = calcExtractNoScStrategy(
             freeRule,
             startIdx,
-            remainingLaps,
+            numLaps,
             freePolicy,
             tyreMaxAge,
-            { startAge, startMeta }
+            { startAge: age0, startMeta, startLap: currentLap, currentStintStart }
           );
           if (!stints || !stints.length) return;
-          const displayStints = raceProgress ? adjustStintsForLapOffset(stints, lapOffset) : stints;
           freeEntries.push({
             startIdx,
             expected_time: expectedTime,
-            stints,
-            displayStints
+            stints
           });
         });
 
@@ -13698,9 +13869,15 @@ setupTyreDegFilterModal();
         }
 
         // Tyre sequence of the optimal strategy under no SC
+        const optimalLabelPast = getLabelPastCompIdxs(
+          pastCompIdxs,
+          currentCompIdx,
+          optimalEntry.stints,
+          inProgress
+        );
         const optimalTyreSeq = buildFullStrategyLabel(
           optimalEntry.stints,
-          pastCompIdxs,
+          optimalLabelPast,
           compounds
         );
 
@@ -13711,7 +13888,7 @@ setupTyreDegFilterModal();
         combinedResults.push({
           label: optimalTyreSeq,
           expected_time: baselineFree,
-          stints: optimalEntry.displayStints,
+          stints: optimalEntry.stints,
           isBaseline: true
         });
         seenLabels.add(optimalTyreSeq);
@@ -13730,9 +13907,22 @@ setupTyreDegFilterModal();
           if (!valid) continue;
 
           let effectivePattern = patternIndices;
-          if (inProgress && startCompIdx !== null && startCompIdx !== undefined) {
-            effectivePattern = [startCompIdx, ...patternIndices];
+          let fullPattern = patternIndices;
+          let patternCompIdx = patternIndices[0];
+          let patternAge = 0;
+
+          if (inProgress && currentCompIdx !== null && currentCompIdx !== undefined) {
+            effectivePattern = [currentCompIdx, ...patternIndices];
+            fullPattern = [...pastCompIdxs, currentCompIdx, ...patternIndices];
+            patternCompIdx = currentCompIdx;
+            patternAge = currentAge;
+          } else {
+            fullPattern = [...pastCompIdxs, ...patternIndices];
+            patternCompIdx = patternIndices[0];
+            patternAge = 0;
           }
+
+          if (!fullPattern.length || patternCompIdx === undefined) continue;
 
           if (raceProgress && usedCompIdxs.size === 1) {
             const only = Array.from(usedCompIdxs)[0];
@@ -13740,9 +13930,9 @@ setupTyreDegFilterModal();
             if (!hasDifferent) continue;
           }
 
-          const rule = new PatternUnlessSCTyreRule(effectivePattern, compoundIndices);
+          const rule = new PatternUnlessSCTyreRule(fullPattern, compoundIndices);
           const { dpExp, policy } = calcComputePolicy(
-            remainingLaps,
+            numLaps,
             compounds,
             fuelEffect,
             scProbRanges,
@@ -13750,31 +13940,38 @@ setupTyreDegFilterModal();
             pitLoss,
             rule,
             tyreMaxAge,
-            startAge
+            0
           );
-          const meta0 = rule.initMeta(effectivePattern[0]);
-          if (meta0 == null) continue;
-          const key0 = calcStateKey(1, effectivePattern[0], startAge, 0, meta0);
+          const metaIdx = pastCompIdxs.length + 1;
+          if (metaIdx < 1 || metaIdx > fullPattern.length) continue;
+          if (fullPattern[metaIdx - 1] !== patternCompIdx) continue;
+          const meta0 = { sc: false, idx: metaIdx };
+          const key0 = calcStateKey(currentLap, patternCompIdx, patternAge, 0, meta0);
           const expectedTime = dpExp.get(key0);
           if (!Number.isFinite(expectedTime)) continue;
           const stints = calcExtractNoScStrategy(
             rule,
-            effectivePattern[0],
-            remainingLaps,
+            patternCompIdx,
+            numLaps,
             policy,
             tyreMaxAge,
-            { startAge, startMeta: meta0 }
+            { startAge: patternAge, startMeta: meta0, startLap: currentLap, currentStintStart }
           );
           if (!stints || !stints.length) continue;
 
-          const label = buildFullStrategyLabel(stints, pastCompIdxs, compounds);
+          const labelPast = getLabelPastCompIdxs(
+            pastCompIdxs,
+            currentCompIdx,
+            stints,
+            inProgress
+          );
+          const label = buildFullStrategyLabel(stints, labelPast, compounds);
           if (seenLabels.has(label)) continue; // don't duplicate optimal
 
-          const displayStints = raceProgress ? adjustStintsForLapOffset(stints, lapOffset) : stints;
           combinedResults.push({
             label,
             expected_time: expectedTime,
-            stints: displayStints
+            stints
           });
           seenLabels.add(label);
         }
@@ -13784,7 +13981,7 @@ setupTyreDegFilterModal();
         }
 
         updateCalculatorCombinedChartAndStints(combinedResults, compounds, baselineFree);
-        updateCalculatorLapTimeChart(combinedResults, compounds, numLaps, fuelEffect, startAge);
+        updateCalculatorLapTimeChart(combinedResults, compounds, numLaps, fuelEffect, currentAge);
       } catch (e) {
         errorBox.textContent = e.message;
         updateCalculatorCombinedChartAndStints([], [], NaN);
@@ -13845,6 +14042,7 @@ setupTyreDegFilterModal();
       }
     
       configureCalculatorPanelFromCircuit(circuitName, { isRestoringPermalink });
+      renderCalculatorRaceProgressDriverOptions(sessionData);
     }
 
     function normalizeSessionType(value) {
@@ -14079,6 +14277,14 @@ setupTyreDegFilterModal();
       }
       renderCalculatorInputsFromState({ skip: ['calculatorCurrentLap'] });
     });
+    const calculatorRaceProgressDriver = document.getElementById('calculatorRaceProgressDriver');
+    if (calculatorRaceProgressDriver) {
+      calculatorRaceProgressDriver.addEventListener('change', function() {
+        const driver = String(this.value || '').trim();
+        if (!driver) return;
+        applyCalculatorRaceProgressFromDriver(driver);
+      });
+    }
     document.getElementById('calculatorPitLoss').addEventListener('input', function() {
       const text = this.value.trim();
       if (text === '') {
