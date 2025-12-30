@@ -13396,7 +13396,12 @@ setupTyreDegFilterModal();
     }
 
     // Chart Updates
-    function updateCalculatorCombinedChartAndStints(combinedResults, compounds, baselineFree) {
+    function updateCalculatorCombinedChartAndStints(
+      combinedResults,
+      compounds,
+      baselineFree,
+      pitStopContext
+    ) {
       const chartDom = document.getElementById("calculatorStrategyChart");
       const stintsDom = document.getElementById("calculatorStrategyStints");
 
@@ -13471,13 +13476,19 @@ setupTyreDegFilterModal();
       calculatorStrategyChart.setOption(option, true);
 
       let html = '<h3>Predicted pit stops</h3>';
+      const contextLap = pitStopContext && Number.isFinite(pitStopContext.currentLap)
+        ? pitStopContext.currentLap
+        : null;
+      const contextInProgress = pitStopContext && pitStopContext.inProgress;
       combinedResults.forEach((r, idx) => {
         const delta = deltas[idx];
         const label = r.isBaseline ? `${r.label} (optimal)` : r.label;
-        const stintText = r.stints
-          .slice(0, -1)
-          .map(([ci, s, e]) => `${e}`)
-          .join(", ");
+        let pitLaps = r.stints.slice(0, -1).map(([ci, s, e]) => e);
+        if (contextInProgress && contextLap && pitLaps.length > 0 && pitLaps[0] === contextLap - 1) {
+          pitLaps = pitLaps.slice();
+          pitLaps[0] = contextLap;
+        }
+        const stintText = pitLaps.map(e => `${e}`).join(", ");
         html += `
           <div class="calculator-stints-item">
             <span class="calculator-stints-label">${label}</span>
@@ -13980,11 +13991,14 @@ setupTyreDegFilterModal();
           throw new Error("No valid fixed strategies from the current patterns.");
         }
 
-        updateCalculatorCombinedChartAndStints(combinedResults, compounds, baselineFree);
+        updateCalculatorCombinedChartAndStints(combinedResults, compounds, baselineFree, {
+          currentLap,
+          inProgress
+        });
         updateCalculatorLapTimeChart(combinedResults, compounds, numLaps, fuelEffect, currentAge);
       } catch (e) {
         errorBox.textContent = e.message;
-        updateCalculatorCombinedChartAndStints([], [], NaN);
+        updateCalculatorCombinedChartAndStints([], [], NaN, null);
         updateCalculatorLapTimeChart([], [], NaN, NaN, NaN);
       }
     }
