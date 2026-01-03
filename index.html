@@ -7380,8 +7380,7 @@
         const lapNumber = parseInt(row.lap_LapNumber, 10);
 
         const deleted = parseBool(row.lap_Deleted);
-        const accurate = parseBool(row.lap_IsAccurate);
-        const validLap = deleted !== true && accurate !== false;
+        const validLap = deleted !== true;
 
         const parsedRow = {
           driver,
