@@ -7638,6 +7638,17 @@
       return { lap: lapCell, s1: s1Cell, s2: s2Cell, s3: s3Cell };
     }
 
+    function getHoldLapDisplay(lap) {
+      if (!lap) return null;
+      const lapCell = Number.isFinite(lap.lapTime)
+        ? { kind: 'final', value: lap.lapTime }
+        : { kind: 'empty' };
+      const s1Cell = Number.isFinite(lap.s1) ? { kind: 'final', value: lap.s1 } : { kind: 'empty' };
+      const s2Cell = Number.isFinite(lap.s2) ? { kind: 'final', value: lap.s2 } : { kind: 'empty' };
+      const s3Cell = Number.isFinite(lap.s3) ? { kind: 'final', value: lap.s3 } : { kind: 'empty' };
+      return { lap: lapCell, s1: s1Cell, s2: s2Cell, s3: s3Cell };
+    }
+
     function getQualiCellFlashClass(cellKey, cellState, nextStates) {
       const prev = qualiPreviousCellStates.get(cellKey);
       const currentKind = cellState?.kind || 'empty';
@@ -7703,6 +7714,7 @@
     }
 
     const QUALI_REORDER_ANIM_MS = 1000;
+    const QUALI_LIVE_LAP_HOLD_SECONDS = 10;
     let qualiRenderOrder = [];
     let qualiReorderLockedUntil = 0;
 
@@ -7867,14 +7879,32 @@
             activeLapByDriver.set(driver, activeLap);
           }
 
+          let liveDisplay = null;
           if (activeLap) {
             const bestLap = qualiCache.bestLapByDriverSession.get(activeLap.session)?.get(driver);
             const isHot = Number.isFinite(activeLap.lapTime) && Number.isFinite(bestLap) && activeLap.lapTime <= bestLap + 2;
             hotLapByDriver.set(driver, isHot);
             if (isHot) {
-              const liveDisplay = getLiveLapDisplay(activeLap, replayTime);
-              liveLapByDriver.set(driver, liveDisplay);
+              liveDisplay = getLiveLapDisplay(activeLap, replayTime);
             }
+          }
+
+          if (!liveDisplay) {
+            const lastLap = findLastLapBeforeTime(laps, replayTime);
+            const holdUntil = Number.isFinite(lastLap?.lapEndTime)
+              ? lastLap.lapEndTime + QUALI_LIVE_LAP_HOLD_SECONDS
+              : null;
+            if (Number.isFinite(holdUntil) && replayTime <= holdUntil) {
+              const bestLap = lastLap ? qualiCache.bestLapByDriverSession.get(lastLap.session)?.get(driver) : null;
+              const wasHot = lastLap && Number.isFinite(lastLap.lapTime) && Number.isFinite(bestLap) && lastLap.lapTime <= bestLap + 2;
+              if (wasHot) {
+                liveDisplay = getHoldLapDisplay(lastLap);
+              }
+            }
+          }
+
+          if (liveDisplay) {
+            liveLapByDriver.set(driver, liveDisplay);
           }
         });
       }
