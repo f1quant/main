@@ -7733,7 +7733,7 @@
       if (!lap || !bestEntry) return false;
       const lapS1 = Number.isFinite(lap.s1) ? lap.s1 : null;
       const bestS1 = Number.isFinite(bestEntry.s1) ? bestEntry.s1 : null;
-      return Number.isFinite(lapS1) && Number.isFinite(bestS1) && lapS1 <= bestS1 + 4;
+      return Number.isFinite(lapS1) && Number.isFinite(bestS1) && lapS1 <= bestS1 + 2;
     }
 
     const QUALI_REORDER_ANIM_MS = 1000;
