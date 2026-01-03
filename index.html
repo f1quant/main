@@ -6831,6 +6831,28 @@
       const allDrivers = [...activeDrivers, ...retiredDrivers];
 
       const gapMode = appState.timingGapMode === 'interval' ? 'interval' : 'leader';
+      const intervalGapByDriver = new Map();
+      const intervalSegmentByDriver = new Map();
+      if (gapMode === 'interval') {
+        let segment = 0;
+        let cumulative = 0;
+        activeDrivers.forEach((d, idx) => {
+          if (idx === 0) {
+            intervalGapByDriver.set(d.driver, 0);
+            intervalSegmentByDriver.set(d.driver, segment);
+            return;
+          }
+          const intervalVal = parseTimingGapValue(d.feedIntervalStr);
+          if (Number.isFinite(intervalVal) && Number.isFinite(cumulative)) {
+            cumulative += intervalVal;
+          } else {
+            segment += 1;
+            cumulative = 0;
+          }
+          intervalGapByDriver.set(d.driver, cumulative);
+          intervalSegmentByDriver.set(d.driver, segment);
+        });
+      }
       const timingRowData = new Map();
 
       // Track status banner (replay only)
@@ -6971,11 +6993,17 @@
           Number.isFinite(sectorTime) ? sectorTime : null
         );
         const feedGapValue = parseTimingGapValue(d.feedGapStr);
+        const intervalGapValue = intervalGapByDriver.get(d.driver);
+        const intervalSegment = intervalSegmentByDriver.get(d.driver);
         const leaderGap = Number.isFinite(d.position) && d.position === 1
           ? 0
           : (Number.isFinite(feedGapValue) ? feedGapValue : (Number.isFinite(d.gap) ? d.gap : null));
+        const gapValue = gapMode === 'interval'
+          ? (Number.isFinite(intervalGapValue) ? intervalGapValue : null)
+          : leaderGap;
         timingRowData.set(d.driver, {
-          gap: leaderGap,
+          gap: gapValue,
+          gapSegment: gapMode === 'interval' ? intervalSegment : null,
           lapTime: lapTimeValue,
           sectors: sectorValues,
           retired: isRetired
@@ -7073,6 +7101,7 @@
         const baseGap = baseData.gap;
         const baseLap = baseData.lapTime;
         const baseSectors = baseData.sectors || [];
+        const baseGapSegment = baseData.gapSegment;
 
         const getTimingColorClass = (cell, fallback) => {
           if (cell.dataset.timingColorClass) return cell.dataset.timingColorClass;
@@ -7098,7 +7127,8 @@
             if (!gapCell.dataset.timingOriginalHtml) {
               gapCell.dataset.timingOriginalHtml = gapCell.innerHTML;
             }
-            if (Number.isFinite(baseGap) && Number.isFinite(rowData.gap)) {
+            const sameSegment = gapMode !== 'interval' || baseGapSegment === rowData.gapSegment;
+            if (Number.isFinite(baseGap) && Number.isFinite(rowData.gap) && sameSegment) {
               gapCell.textContent = formatTimingDelta(rowData.gap - baseGap);
             } else {
               gapCell.textContent = '—';
