@@ -3488,6 +3488,15 @@
       }
     };
 
+    const timingHoverState = {
+      driver: null,
+      source: null
+    };
+    const timingHoverHandlers = {
+      apply: null,
+      clear: null
+    };
+
     // ============================================================================
     // REPLAY MODE HELPERS
     // ============================================================================
@@ -6286,6 +6295,29 @@
       return `${prefix}${seconds.toFixed(3)}`;
     }
 
+    function parseTimingGapValue(raw) {
+      if (raw === null || raw === undefined) return null;
+      if (Number.isFinite(raw)) return raw;
+      const text = String(raw).trim();
+      if (!text) return null;
+      const upper = text.toUpperCase();
+      if (upper.includes('LAP') || upper.includes('LAPPED')) return null;
+      if (upper === 'PIT' || upper === 'OUT' || upper === 'IN') return null;
+      let cleaned = text;
+      if (cleaned.startsWith('+')) cleaned = cleaned.slice(1);
+      if (cleaned.includes(':')) {
+        const [minsRaw, secsRaw] = cleaned.split(':');
+        const mins = parseInt(minsRaw, 10);
+        const secs = parseFloat(secsRaw);
+        if (Number.isFinite(mins) && Number.isFinite(secs)) {
+          return mins * 60 + secs;
+        }
+        return null;
+      }
+      const value = parseFloat(cleaned);
+      return Number.isFinite(value) ? value : null;
+    }
+
 
     function loadTimingFeedForSession(year, round, sessionType) {
       return new Promise((resolve) => {
@@ -6928,8 +6960,12 @@
         const sectorValues = sectorsToShow.map((sectorTime) =>
           Number.isFinite(sectorTime) ? sectorTime : null
         );
+        const feedGapValue = parseTimingGapValue(d.feedGapStr);
+        const leaderGap = Number.isFinite(d.position) && d.position === 1
+          ? 0
+          : (Number.isFinite(feedGapValue) ? feedGapValue : (Number.isFinite(d.gap) ? d.gap : null));
         timingRowData.set(d.driver, {
-          gap: Number.isFinite(d.gap) ? d.gap : null,
+          gap: leaderGap,
           lapTime: lapTimeValue,
           sectors: sectorValues,
           retired: isRetired
@@ -7011,24 +7047,19 @@
 
       // Add hover interaction with lap time chart
       const tableRows = container.querySelectorAll('tbody tr[data-driver]');
-      let timingHoverDriver = null;
 
       const clearTimingRelativeView = () => {
-        if (!timingHoverDriver) return;
         const modifiedCells = container.querySelectorAll('[data-timing-original-html]');
         modifiedCells.forEach(cell => {
           cell.innerHTML = cell.dataset.timingOriginalHtml;
           delete cell.dataset.timingOriginalHtml;
         });
-        timingHoverDriver = null;
       };
 
       const setTimingRelativeView = (baseDriver) => {
-        if (timingHoverDriver === baseDriver) return;
         clearTimingRelativeView();
         const baseData = timingRowData.get(baseDriver);
         if (!baseData) return;
-        timingHoverDriver = baseDriver;
         const baseGap = baseData.gap;
         const baseLap = baseData.lapTime;
         const baseSectors = baseData.sectors || [];
@@ -7105,19 +7136,32 @@
         });
       };
 
+      timingHoverHandlers.apply = setTimingRelativeView;
+      timingHoverHandlers.clear = clearTimingRelativeView;
+
       tableRows.forEach(row => {
         const driver = row.getAttribute('data-driver');
 
         row.addEventListener('mouseenter', () => {
-          highlightDriverOnLapTimeChart(driver);
-          setTimingRelativeView(driver);
+          applyTimingHover(driver, 'table');
         });
 
         row.addEventListener('mouseleave', () => {
-          clearLapTimeChartHighlight();
-          clearTimingRelativeView();
+          clearTimingHover('table');
         });
       });
+
+      const hoveredRow = container.querySelector('tbody tr[data-driver]:hover');
+      const hoverDriver = hoveredRow ? hoveredRow.getAttribute('data-driver') : null;
+      if (hoverDriver && timingRowData.has(hoverDriver)) {
+        applyTimingHover(hoverDriver, 'table');
+      } else if (timingHoverState.source === 'chart' && timingHoverState.driver && timingRowData.has(timingHoverState.driver)) {
+        applyTimingHover(timingHoverState.driver, 'chart');
+      } else if (timingHoverState.source === 'table') {
+        clearTimingHover('table');
+      } else {
+        clearTimingHover();
+      }
 
       // Gap header toggle (leader vs ahead)
       const gapHeader = container.querySelector('#timingGapHeader');
@@ -10753,42 +10797,16 @@ setupTyreDegFilterModal();
         indices.forEach(idx => seriesDriverLookup.set(idx, driver));
       });
 
-      const applyDriverHighlight = (driver) => {
-        const driverSeriesIndices = lapTimeSeriesIndexByDriver.get(driver) || [];
-        const updatedSeries = series.map((s, idx) => {
-          if (idx >= driverSeriesCount) return {};
-          const isDriver = driverSeriesIndices.includes(idx);
-          return {
-            lineStyle: { width: isDriver ? 3 : 2, color: s.lineStyle.color, opacity: isDriver ? 1 : 0.15 },
-            itemStyle: { ...s.itemStyle, opacity: isDriver ? 1 : 0.15 },
-            endLabel: s.endLabel ? { ...s.endLabel, opacity: isDriver ? 1 : 0.15 } : undefined
-          };
-        });
-        lapTimeChartInstance.setOption({ series: updatedSeries }, false);
-      };
-
-      const clearDriverHighlight = () => {
-        const resetSeries = series.map((s, idx) => {
-          if (idx >= driverSeriesCount) return {};
-          return {
-            lineStyle: { width: 2, color: s.lineStyle.color, opacity: 1 },
-            itemStyle: { ...s.itemStyle, opacity: 1 },
-            endLabel: s.endLabel ? { ...s.endLabel, opacity: 1 } : undefined
-          };
-        });
-        lapTimeChartInstance.setOption({ series: resetSeries }, false);
-      };
-
       lapTimeChartInstance.on('mouseover', (params) => {
         if (params.componentType !== 'series' || params.seriesType !== 'line') return;
         const driver = seriesDriverLookup.get(params.seriesIndex);
         if (!driver) return;
-        applyDriverHighlight(driver);
+        applyTimingHover(driver, 'chart');
       });
 
       lapTimeChartInstance.on('mouseout', (params) => {
         if (params.componentType !== 'series' || params.seriesType !== 'line') return;
-        clearDriverHighlight();
+        clearTimingHover('chart');
       });
     }
 
@@ -10837,6 +10855,26 @@ setupTyreDegFilterModal();
       lapTimeChartInstance.setOption({
         series: updatedSeries
       });
+    }
+
+    function applyTimingHover(driver, source = null) {
+      if (!driver) return;
+      timingHoverState.driver = driver;
+      timingHoverState.source = source;
+      if (timingHoverHandlers.apply) {
+        timingHoverHandlers.apply(driver);
+      }
+      highlightDriverOnLapTimeChart(driver);
+    }
+
+    function clearTimingHover(source = null) {
+      if (source && timingHoverState.source && timingHoverState.source !== source) return;
+      timingHoverState.driver = null;
+      timingHoverState.source = null;
+      if (timingHoverHandlers.clear) {
+        timingHoverHandlers.clear();
+      }
+      clearLapTimeChartHighlight();
     }
 
     function renderLapTimeSummaryTable() {
