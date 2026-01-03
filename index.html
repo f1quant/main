@@ -6280,6 +6280,12 @@
       return seconds.toFixed(3);
     }
 
+    function formatTimingDelta(seconds) {
+      if (!Number.isFinite(seconds)) return '';
+      const prefix = seconds >= 0 ? '+' : '';
+      return `${prefix}${seconds.toFixed(3)}`;
+    }
+
 
     function loadTimingFeedForSession(year, round, sessionType) {
       return new Promise((resolve) => {
@@ -6783,6 +6789,7 @@
       const allDrivers = [...activeDrivers, ...retiredDrivers];
 
       const gapMode = appState.timingGapMode === 'interval' ? 'interval' : 'leader';
+      const timingRowData = new Map();
 
       // Track status banner (replay only)
       if (trackStatusEl) {
@@ -6879,7 +6886,7 @@
         html += '</div></td>';
 
         // Lap time
-        html += '<td>';
+        html += '<td class="timing-lap-cell">';
         if (isRetired) {
           const status = d.finishStatus.toUpperCase();
           html += `<span class="timing-retired">${status}</span>`;
@@ -6917,12 +6924,23 @@
           sectorsToShow = [inProgress.s1, inProgress.s2, null];
         }
 
+        const lapTimeValue = !isRetired && Number.isFinite(d.lapDuration) ? d.lapDuration : null;
+        const sectorValues = sectorsToShow.map((sectorTime) =>
+          Number.isFinite(sectorTime) ? sectorTime : null
+        );
+        timingRowData.set(d.driver, {
+          gap: Number.isFinite(d.gap) ? d.gap : null,
+          lapTime: lapTimeValue,
+          sectors: sectorValues,
+          retired: isRetired
+        });
+
         sectorsToShow.forEach((sectorTime, idx) => {
           const sessionBest = [sessionBests.fastestS1, sessionBests.fastestS2, sessionBests.fastestS3][idx];
           const driverPB = personalBests.get(d.driver);
           const personalBest = driverPB ? [driverPB.fastestS1, driverPB.fastestS2, driverPB.fastestS3][idx] : null;
 
-          html += '<td>';
+          html += `<td class="timing-sector-cell" data-sector-index="${idx}">`;
           if (!isRetired && sectorTime) {
             const isSessionFastest = sessionBest && Math.abs(sectorTime - sessionBest) < 0.001;
             const isPersonalBest = !isSessionFastest && personalBest && Math.abs(sectorTime - personalBest) < 0.001;
@@ -6993,15 +7011,111 @@
 
       // Add hover interaction with lap time chart
       const tableRows = container.querySelectorAll('tbody tr[data-driver]');
+      let timingHoverDriver = null;
+
+      const clearTimingRelativeView = () => {
+        if (!timingHoverDriver) return;
+        const modifiedCells = container.querySelectorAll('[data-timing-original-html]');
+        modifiedCells.forEach(cell => {
+          cell.innerHTML = cell.dataset.timingOriginalHtml;
+          delete cell.dataset.timingOriginalHtml;
+        });
+        timingHoverDriver = null;
+      };
+
+      const setTimingRelativeView = (baseDriver) => {
+        if (timingHoverDriver === baseDriver) return;
+        clearTimingRelativeView();
+        const baseData = timingRowData.get(baseDriver);
+        if (!baseData) return;
+        timingHoverDriver = baseDriver;
+        const baseGap = baseData.gap;
+        const baseLap = baseData.lapTime;
+        const baseSectors = baseData.sectors || [];
+
+        const getTimingColorClass = (cell, fallback) => {
+          if (cell.dataset.timingColorClass) return cell.dataset.timingColorClass;
+          const span = cell.querySelector('.timing-pill-text');
+          let colorClass = fallback;
+          if (span) {
+            const classes = Array.from(span.classList).filter(c => c !== 'timing-pill-text');
+            if (classes.length > 0) {
+              colorClass = classes.join(' ');
+            }
+          }
+          cell.dataset.timingColorClass = colorClass;
+          return colorClass;
+        };
+
+        tableRows.forEach(row => {
+          const rowDriver = row.getAttribute('data-driver');
+          const rowData = timingRowData.get(rowDriver);
+          if (!rowData || rowData.retired) return;
+
+          const gapCell = row.querySelector('.timing-gap');
+          if (gapCell) {
+            if (!gapCell.dataset.timingOriginalHtml) {
+              gapCell.dataset.timingOriginalHtml = gapCell.innerHTML;
+            }
+            if (Number.isFinite(baseGap) && Number.isFinite(rowData.gap)) {
+              gapCell.textContent = formatTimingDelta(rowData.gap - baseGap);
+            } else {
+              gapCell.textContent = '—';
+            }
+          }
+
+          const lapCell = row.querySelector('.timing-lap-cell');
+          if (lapCell) {
+            if (!lapCell.dataset.timingOriginalHtml) {
+              lapCell.dataset.timingOriginalHtml = lapCell.innerHTML;
+            }
+            if (Number.isFinite(baseLap) && Number.isFinite(rowData.lapTime)) {
+              const colorClass = getTimingColorClass(lapCell, 'timing-normal-lap');
+              lapCell.innerHTML = `
+                <span class="timing-pill">
+                  <span class="timing-pill-text ${colorClass}">
+                    ${formatTimingDelta(rowData.lapTime - baseLap)}
+                  </span>
+                </span>`;
+            } else {
+              lapCell.textContent = '—';
+            }
+          }
+
+          const sectorCells = row.querySelectorAll('.timing-sector-cell');
+          sectorCells.forEach(cell => {
+            const idx = parseInt(cell.dataset.sectorIndex, 10);
+            if (!cell.dataset.timingOriginalHtml) {
+              cell.dataset.timingOriginalHtml = cell.innerHTML;
+            }
+            const rowSector = Number.isFinite(rowData.sectors?.[idx]) ? rowData.sectors[idx] : null;
+            const baseSector = Number.isFinite(baseSectors?.[idx]) ? baseSectors[idx] : null;
+            if (Number.isFinite(rowSector) && Number.isFinite(baseSector)) {
+              const colorClass = getTimingColorClass(cell, 'timing-normal-sector');
+              cell.innerHTML = `
+                <span class="timing-pill sector">
+                  <span class="timing-pill-text ${colorClass}">
+                    ${formatTimingDelta(rowSector - baseSector)}
+                  </span>
+                </span>`;
+            } else {
+              cell.textContent = '';
+            }
+          });
+        });
+      };
+
       tableRows.forEach(row => {
         const driver = row.getAttribute('data-driver');
 
         row.addEventListener('mouseenter', () => {
           highlightDriverOnLapTimeChart(driver);
+          setTimingRelativeView(driver);
         });
 
         row.addEventListener('mouseleave', () => {
           clearLapTimeChartHighlight();
+          clearTimingRelativeView();
         });
       });
 
