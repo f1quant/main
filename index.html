@@ -697,6 +697,19 @@
       color: #ff3333;
     }
 
+    .quali-tyre-cell {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      font-family: 'Roboto Mono', monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 11px;
+    }
+
+    .quali-tyre-age {
+      color: #e5e7eb;
+    }
+
     .quali-placeholder {
       color: var(--muted-color);
     }
@@ -7378,6 +7391,8 @@
         const pitOutTime = parseFloat(row.lap_PitOutTime);
         const pitInTime = parseFloat(row.lap_PitInTime);
         const lapNumber = parseInt(row.lap_LapNumber, 10);
+        const compound = String(row.lap_Compound || '').trim();
+        const tyreLife = parseInt(row.lap_TyreLife, 10);
 
         const deleted = parseBool(row.lap_Deleted);
         const validLap = deleted !== true;
@@ -7397,6 +7412,8 @@
           s3Time,
           pitOutTime,
           pitInTime,
+          compound,
+          tyreLife,
           validLap
         };
 
@@ -7728,6 +7745,29 @@
       return 'timing-normal-sector';
     }
 
+    function getQualiCompoundColor(compound) {
+      const raw = String(compound || '').trim();
+      if (!raw) return '#999999';
+      const upper = raw.toUpperCase();
+      const full = upper.length === 1
+        ? ({ S: 'soft', M: 'medium', H: 'hard', I: 'intermediate', W: 'wet' }[upper] || raw)
+        : raw;
+      return getTimingTireColor(full);
+    }
+
+    function formatQualiTyreCell(info) {
+      if (!info) return '<span class="quali-placeholder">--</span>';
+      const compoundRaw = String(info.compound || '').trim();
+      const age = Number.isFinite(info.age) ? info.age : null;
+      if (!compoundRaw || !Number.isFinite(age)) return '<span class="quali-placeholder">--</span>';
+      const color = getQualiCompoundColor(compoundRaw);
+      const ageText = String(age);
+      return `
+        <div class="quali-tyre-cell">
+          <span class="quali-tyre-age" style="color: ${color};">${ageText}</span>
+        </div>`;
+    }
+
     function isHotLapBySectors(lap, bestEntry) {
       if (!lap || !bestEntry) return false;
       const lapS1 = Number.isFinite(lap.s1) ? lap.s1 : null;
@@ -7746,6 +7786,7 @@
           '<th class="sticky-col sticky-col-1" rowspan="2">Pos</th>' +
           '<th class="sticky-col sticky-col-2" rowspan="2">Driver</th>' +
           '<th class="sticky-col sticky-col-3" rowspan="2">Gap</th>' +
+          '<th rowspan="2">Tyre</th>' +
           '<th colspan="4">Live Lap</th>' +
           '<th colspan="4">Best Q3</th>' +
           '<th colspan="4">Best Q2</th>' +
@@ -7887,12 +7928,52 @@
       const bestCurrent = computeBestThisSession(qualiCache, activeSession, replayTime, isReplay);
       const liveSectorBests = computeQualiSectorBests(qualiCache, activeSession, replayTime, isReplay);
       const bestFinalBySession = qualiCache.bestFinalBySession;
+      const hasReplayTime = isReplay && Number.isFinite(replayTime);
+
+      function getLastSessionForDriver(laps, maxSession) {
+        if (!Array.isArray(laps) || laps.length === 0) return null;
+        let lastSession = null;
+        laps.forEach(lap => {
+          const sessionNum = lap.session;
+          if (!Number.isFinite(sessionNum)) return;
+          if (Number.isFinite(maxSession) && sessionNum > maxSession) return;
+          if (hasReplayTime && Number.isFinite(lap.lapStartTime) && lap.lapStartTime > replayTime) return;
+          if (lastSession === null || sessionNum > lastSession) {
+            lastSession = sessionNum;
+          }
+        });
+        return lastSession;
+      }
+
+      function getBestEntryForSession(sessionNumber, driver) {
+        if (!Number.isFinite(sessionNumber)) return null;
+        if (sessionNumber === activeSession) return bestCurrent.get(driver) || null;
+        return bestFinalBySession.get(sessionNumber)?.get(driver) || null;
+      }
+
+      function findLapForBestEntry(laps, sessionNumber, bestEntry) {
+        if (!Array.isArray(laps) || !bestEntry || !Number.isFinite(bestEntry.lap)) return null;
+        let bestLap = null;
+        let bestDiff = Infinity;
+        laps.forEach(lap => {
+          if (lap.session !== sessionNumber) return;
+          if (!lap.validLap || !Number.isFinite(lap.lapTime)) return;
+          if (hasReplayTime && Number.isFinite(lap.lapEndTime) && lap.lapEndTime > replayTime) return;
+          const diff = Math.abs(lap.lapTime - bestEntry.lap);
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            bestLap = lap;
+          }
+        });
+        return bestLap;
+      }
 
       const drivers = qualiCache.drivers.slice();
 
       const activeLapByDriver = new Map();
       const liveLapByDriver = new Map();
       const hotLapByDriver = new Map();
+      const tyreInfoByDriver = new Map();
 
       if (isReplay) {
         qualiCache.lapsByDriver.forEach((laps, driver) => {
@@ -7927,6 +8008,31 @@
 
           if (liveDisplay) {
             liveLapByDriver.set(driver, liveDisplay);
+          }
+
+          let tyreLap = liveDisplay ? activeLap : null;
+          if (!tyreLap) {
+            const sessionForDriver = getLastSessionForDriver(laps, activeSession);
+            const bestEntry = sessionForDriver ? getBestEntryForSession(sessionForDriver, driver) : null;
+            tyreLap = findLapForBestEntry(laps, sessionForDriver, bestEntry);
+          }
+          if (tyreLap) {
+            tyreInfoByDriver.set(driver, {
+              compound: tyreLap.compound,
+              age: Number.isFinite(tyreLap.tyreLife) ? tyreLap.tyreLife : null
+            });
+          }
+        });
+      } else {
+        qualiCache.lapsByDriver.forEach((laps, driver) => {
+          const sessionForDriver = getLastSessionForDriver(laps, activeSession);
+          const bestEntry = sessionForDriver ? getBestEntryForSession(sessionForDriver, driver) : null;
+          const tyreLap = findLapForBestEntry(laps, sessionForDriver, bestEntry);
+          if (tyreLap) {
+            tyreInfoByDriver.set(driver, {
+              compound: tyreLap.compound,
+              age: Number.isFinite(tyreLap.tyreLife) ? tyreLap.tyreLife : null
+            });
           }
         });
       }
@@ -8097,6 +8203,7 @@
         cells.push(`<td class="sticky-col sticky-col-1 quali-position">${position}</td>`);
         cells.push(`<td class="sticky-col sticky-col-2"><div class="quali-driver"><span class="quali-driver-strip" style="background:${driverColor};"></span><span class="quali-driver-code">${driver}</span></div></td>`);
         cells.push(`<td class="sticky-col sticky-col-3 quali-gap">${gap}</td>`);
+        cells.push(`<td>${formatQualiTyreCell(tyreInfoByDriver.get(driver))}</td>`);
         cells.push(`<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates, { timeFormatter: liveLapFormatter, timeClass: liveLapTimeClass }) : '<span class="quali-placeholder">--</span>'}</td>`);
         cells.push(`<td>${isReplay ? renderQualiCell(liveCells?.s1, leaderLiveSectorBaseline.s1, `${driver}|live|s1`, nextCellStates, { timeClass: liveS1Class }) : '<span class="quali-placeholder">--</span>'}</td>`);
         cells.push(`<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveSectorBaseline.s2, `${driver}|live|s2`, nextCellStates, { timeClass: liveS2Class, deltaValue: liveS2DeltaValue, deltaBaseline: leaderLiveSectorBaselineCumS2 }) : '<span class="quali-placeholder">--</span>'}</td>`);
