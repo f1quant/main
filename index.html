@@ -10455,8 +10455,9 @@ setupTyreDegFilterModal();
     function handleSharedFiltersChange() {
       renderSharedFiltersFromState();
 
-      if (lapTimeCurrentSessionRows && lapTimeCurrentSessionRows.length > 0) {
-        processLapTimeData(lapTimeCurrentSessionRows);
+      const lapTimeRows = (replayConfig.enabled && currentSessionData) ? currentSessionData : lapTimeCurrentSessionRows;
+      if (lapTimeRows) {
+        processLapTimeData(lapTimeRows);
       }
 
       if (currentSessionData && currentSessionData.length > 0) {
@@ -10499,6 +10500,7 @@ setupTyreDegFilterModal();
     }
 
     function processLapTimeData(sessionData) {
+      lapTimeCurrentSessionRows = sessionData || [];
       if (!sessionData || sessionData.length === 0) {
         lapTimeDriverOrder = [];
         lapTimeCurrentGroups = new Map();
