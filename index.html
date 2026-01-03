@@ -479,6 +479,14 @@
 
     .timing-pill-text {
       font-family: 'Roboto Mono', monospace;
+      display: inline-block;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      width: 8ch;
+    }
+
+    .timing-pill.sector .timing-pill-text {
+      width: 6ch;
     }
 
     .timing-fastest {
@@ -3490,11 +3498,13 @@
 
     const timingHoverState = {
       driver: null,
-      source: null
+      source: null,
+      lastPointer: null
     };
     const timingHoverHandlers = {
       apply: null,
-      clear: null
+      clear: null,
+      hasDriver: null
     };
 
     // ============================================================================
@@ -7138,30 +7148,62 @@
 
       timingHoverHandlers.apply = setTimingRelativeView;
       timingHoverHandlers.clear = clearTimingRelativeView;
+      timingHoverHandlers.hasDriver = (driver) => timingRowData.has(driver);
 
-      tableRows.forEach(row => {
-        const driver = row.getAttribute('data-driver');
+      if (!container.dataset.timingHoverBound) {
+        container.dataset.timingHoverBound = 'true';
 
-        row.addEventListener('mouseenter', () => {
-          applyTimingHover(driver, 'table');
+        container.addEventListener('mousemove', (event) => {
+          if (appState.currentActiveTab !== 'timing') return;
+          timingHoverState.lastPointer = { x: event.clientX, y: event.clientY };
+          const target = event.target;
+          const row = target && target.closest ? target.closest('tr[data-driver]') : null;
+          if (!row) {
+            if (timingHoverState.source === 'table') {
+              clearTimingHover('table');
+            }
+            return;
+          }
+          const driver = row.getAttribute('data-driver');
+          if (driver && timingHoverHandlers.hasDriver?.(driver)) {
+            applyTimingHover(driver, 'table');
+          }
         });
 
-        row.addEventListener('mouseleave', () => {
+        container.addEventListener('mouseleave', () => {
+          timingHoverState.lastPointer = null;
           clearTimingHover('table');
         });
-      });
-
-      const hoveredRow = container.querySelector('tbody tr[data-driver]:hover');
-      const hoverDriver = hoveredRow ? hoveredRow.getAttribute('data-driver') : null;
-      if (hoverDriver && timingRowData.has(hoverDriver)) {
-        applyTimingHover(hoverDriver, 'table');
-      } else if (timingHoverState.source === 'chart' && timingHoverState.driver && timingRowData.has(timingHoverState.driver)) {
-        applyTimingHover(timingHoverState.driver, 'chart');
-      } else if (timingHoverState.source === 'table') {
-        clearTimingHover('table');
-      } else {
-        clearTimingHover();
       }
+
+      const getDriverFromPoint = (point) => {
+        if (!point) return null;
+        const el = document.elementFromPoint(point.x, point.y);
+        if (!el) return null;
+        const row = el.closest('tr[data-driver]');
+        if (!row || !container.contains(row)) return null;
+        return row.getAttribute('data-driver');
+      };
+
+      const syncTimingHover = () => {
+        if (timingHoverState.source === 'table' || container.matches(':hover')) {
+          const driver = getDriverFromPoint(timingHoverState.lastPointer);
+          if (driver && timingHoverHandlers.hasDriver?.(driver)) {
+            applyTimingHover(driver, 'table');
+            return;
+          }
+          if (timingHoverState.source === 'table') {
+            clearTimingHover('table');
+            return;
+          }
+        }
+        if (timingHoverState.source === 'chart' && timingHoverState.driver && timingHoverHandlers.hasDriver?.(timingHoverState.driver)) {
+          applyTimingHover(timingHoverState.driver, 'chart');
+          return;
+        }
+        clearTimingHover();
+      };
+      requestAnimationFrame(syncTimingHover);
 
       // Gap header toggle (leader vs ahead)
       const gapHeader = container.querySelector('#timingGapHeader');
