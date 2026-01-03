@@ -7731,13 +7731,9 @@
 
     function isHotLapBySectors(lap, bestEntry) {
       if (!lap || !bestEntry) return false;
-      const lapSum = (Number.isFinite(lap.s1) && Number.isFinite(lap.s2))
-        ? lap.s1 + lap.s2
-        : null;
-      const bestSum = (Number.isFinite(bestEntry.s1) && Number.isFinite(bestEntry.s2))
-        ? bestEntry.s1 + bestEntry.s2
-        : null;
-      return Number.isFinite(lapSum) && Number.isFinite(bestSum) && lapSum <= bestSum + 2;
+      const lapS1 = Number.isFinite(lap.s1) ? lap.s1 : null;
+      const bestS1 = Number.isFinite(bestEntry.s1) ? bestEntry.s1 : null;
+      return Number.isFinite(lapS1) && Number.isFinite(bestS1) && lapS1 <= bestS1 + 4;
     }
 
     const QUALI_REORDER_ANIM_MS = 1000;
