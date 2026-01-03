@@ -8068,12 +8068,13 @@
         const liveS2DeltaValue = (liveCells?.s1?.kind === 'final' && liveCells?.s2?.kind === 'final')
           ? liveCells.s1.value + liveCells.s2.value
           : null;
+        const liveLapFormatter = liveCells?.lap?.kind === 'final' ? formatQualiTime : formatQualiLiveTime;
 
         const cells = [];
         cells.push(`<td class="sticky-col sticky-col-1 quali-position">${position}</td>`);
         cells.push(`<td class="sticky-col sticky-col-2"><div class="quali-driver"><span class="quali-driver-strip" style="background:${driverColor};"></span><span class="quali-driver-code">${driver}</span></div></td>`);
         cells.push(`<td class="sticky-col sticky-col-3 quali-gap">${gap}</td>`);
-        cells.push(`<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates, { timeFormatter: formatQualiLiveTime }) : '<span class="quali-placeholder">--</span>'}</td>`);
+        cells.push(`<td class="quali-group-start">${isReplay ? renderQualiCell(liveCells?.lap, leaderLiveBaseline.lap, `${driver}|live|lap`, nextCellStates, { timeFormatter: liveLapFormatter }) : '<span class="quali-placeholder">--</span>'}</td>`);
         cells.push(`<td>${isReplay ? renderQualiCell(liveCells?.s1, leaderLiveSectorBaseline.s1, `${driver}|live|s1`, nextCellStates, { timeClass: liveS1Class }) : '<span class="quali-placeholder">--</span>'}</td>`);
         cells.push(`<td>${isReplay ? renderQualiCell(liveCells?.s2, leaderLiveSectorBaseline.s2, `${driver}|live|s2`, nextCellStates, { timeClass: liveS2Class, deltaValue: liveS2DeltaValue, deltaBaseline: leaderLiveSectorBaselineCumS2 }) : '<span class="quali-placeholder">--</span>'}</td>`);
         cells.push(`<td>${isReplay ? renderQualiCell(liveCells?.s3, leaderLiveSectorBaseline.s3, `${driver}|live|s3`, nextCellStates, { timeClass: liveS3Class }) : '<span class="quali-placeholder">--</span>'}</td>`);
