@@ -3934,7 +3934,8 @@ year,round_no,session_type,driver,number,color,TeamName,FullName,HeadshotUrl
 2025,24,R,HAD,6,#fcd700,Racing Bulls,Isack Hadjar,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/I/ISAHAD01_Isack_Hadjar/isahad01.png.transform/1col/image.png
 2025,24,R,LAW,30,#fcd700,Racing Bulls,Liam Lawson,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LIALAW01_Liam_Lawson/lialaw01.png.transform/1col/image.png
 2025,24,R,GAS,10,#ff87bc,Alpine,Pierre Gasly,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png.transform/1col/image.png
-2025,24,R,COL,43,#ff87bc,Alpine,Franco Colapinto,None2025,24,Q,VER,1,#0600ef,Red Bull Racing,Max Verstappen,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png
+2025,24,R,COL,43,#ff87bc,Alpine,Franco Colapinto,None
+2025,24,Q,VER,1,#0600ef,Red Bull Racing,Max Verstappen,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png
 2025,24,Q,NOR,4,#ff8000,McLaren,Lando Norris,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png.transform/1col/image.png
 2025,24,Q,PIA,81,#ff8000,McLaren,Oscar Piastri,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png.transform/1col/image.png
 2025,24,Q,RUS,63,#27f4d2,Mercedes,George Russell,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/1col/image.png
