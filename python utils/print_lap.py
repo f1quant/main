@@ -4,7 +4,7 @@ import numpy as np
 
 session = fastf1.get_session(2026, 1, "Q")
 session.load()
-laps = session.laps.pick_drivers("VER")
+laps = session.laps.pick_drivers("NOR")
 # lap = laps[laps["LapNumber"] == 5].iloc[0]
 # lap = laps[laps["LapNumber"] == 40]
 
