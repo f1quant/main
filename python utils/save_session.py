@@ -3,6 +3,29 @@ import my_f1_utils # set the cache
 from pathlib import Path
 import pandas as pd
 
+def ensure_trailing_newline(path: Path):
+    if not path.exists() or path.stat().st_size == 0:
+        return
+
+    with path.open("rb") as f:
+        f.seek(-1, 2)
+        last_byte = f.read(1)
+
+    if last_byte != b"\n":
+        with path.open("ab") as f:
+            f.write(b"\n")
+
+def write_or_append_csv(df: pd.DataFrame, fn: str):
+    path = Path(fn)
+
+    if path.exists() and path.stat().st_size > 0:
+        header_order = pd.read_csv(fn, nrows=0).columns.tolist()
+        df = df.reindex(columns=header_order)
+        ensure_trailing_newline(path)
+        df.to_csv(fn, mode="a", index=False, header=False)
+    else:
+        df.to_csv(fn, index=False)
+
 def save_driver_info(races):
     fn = "github/driver_info.csv"
     path = Path(fn)
@@ -26,12 +49,7 @@ def save_driver_info(races):
                     continue
             df = pd.DataFrame(colors)
 
-            if path.exists() and path.stat().st_size > 0:
-                header_order = pd.read_csv(fn, nrows=0).columns.tolist()  # existing CSV column order
-                df = df.reindex(columns=header_order)                      # reorder/align to file
-                df.to_csv(fn, mode="a", index=False, header=False)         # append rows
-            else:
-                df.to_csv(fn, index=False)                                 # new/empty file: write header once
+            write_or_append_csv(df, fn)
                         
         except Exception as e:
             print(f"Skipping {year} R{round_no}: {e}")
@@ -129,13 +147,7 @@ def save_to_all_df(races, fn, quali=False):
     for year, round_no, session_type in races:    
         try:
             df = process_round_laps(year, round_no, session_type, quali=quali)
-            path = Path(fn)
-            if path.exists() and path.stat().st_size > 0:
-                header_order = pd.read_csv(fn, nrows=0).columns.tolist()  # existing CSV column order
-                df = df.reindex(columns=header_order)                      # reorder/align to file
-                df.to_csv(fn, mode="a", index=False, header=False)         # append rows
-            else:
-                df.to_csv(fn, index=False)                                 # new/empty file: write header once
+            write_or_append_csv(df, fn)
         except Exception as e:
             print(f"Skipping {year} {session_type} {round_no}: {e}")
             continue
