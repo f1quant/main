@@ -2674,8 +2674,8 @@
               <div class="lap-time-controls">
                 <div class="lap-time-controls-left">
                   <div id="timingTrackStatus" class="timing-track-status" aria-live="polite"></div>
-                  <button id="fuelAdjustToggle" class="toggle-button active">Fuel Adjusted</button>
-                  <button id="tyreLifeAdjustToggle" class="toggle-button active">Tyre Life Adjusted</button>
+                  <button id="fuelAdjustToggle" class="toggle-button">Fuel Adjusted</button>
+                  <button id="tyreLifeAdjustToggle" class="toggle-button">Tyre Life Adjusted</button>
                 </div>
                 <div class="lap-time-controls-right">
                   <button id="lapTimeFilterBtn" class="filter-button" data-tooltip="Adjust lap filters" aria-label="Adjust lap filters">
@@ -2778,19 +2778,19 @@
             <div class="filters-grid" style="grid-template-columns: 1fr;">
               <div class="filter-item vertical">
                 <div class="filter-label">Laps to Discard at Start of Race</div>
-                <input type="number" id="filterMinLap" value="1" min="0">
+                <input type="number" id="filterMinLap" value="0" min="0">
               </div>
               <div class="filter-item vertical">
                 <div class="filter-label">Laps to Discard at End of Race</div>
-                <input type="number" id="filterEndLaps" value="1" min="0">
+                <input type="number" id="filterEndLaps" value="0" min="0">
               </div>
               <div class="filter-item vertical">
                 <div class="filter-label">Laps to Discard at Start of Stint</div>
-                <input type="number" id="filterMinStintLap" value="2" min="0">
+                <input type="number" id="filterMinStintLap" value="0" min="0">
               </div>
               <div class="filter-item vertical">
                 <div class="filter-label">Min Distance to Car Ahead</div>
-                <input type="number" id="filterMinDist" value="200" min="0" step="0.1">
+                <input type="number" id="filterMinDist" value="0" min="0" step="0.1">
               </div>
             </div>
           </div>
@@ -2918,19 +2918,19 @@
             <div class="filters-grid" style="grid-template-columns: 1fr;">
               <div class="filter-item vertical">
                 <div class="filter-label">Laps to Discard at Start of Race</div>
-                <input type="number" id="tyreDegFilterMinLap" value="1" min="0">
+                <input type="number" id="tyreDegFilterMinLap" value="0" min="0">
               </div>
               <div class="filter-item vertical">
                 <div class="filter-label">Laps to Discard at End of Race</div>
-                <input type="number" id="tyreDegFilterEndLaps" value="1" min="0">
+                <input type="number" id="tyreDegFilterEndLaps" value="0" min="0">
               </div>
               <div class="filter-item vertical">
                 <div class="filter-label">Laps to Discard at Start of Stint</div>
-                <input type="number" id="tyreDegFilterMinStintLap" value="2" min="0">
+                <input type="number" id="tyreDegFilterMinStintLap" value="0" min="0">
               </div>
               <div class="filter-item vertical">
                 <div class="filter-label">Min Distance to Car Ahead</div>
-                <input type="number" id="tyreDegFilterMinDist" value="200" min="0" step="0.1">
+                <input type="number" id="tyreDegFilterMinDist" value="0" min="0" step="0.1">
               </div>
             </div>
           </div>
@@ -2988,19 +2988,19 @@
             <div class="filters-grid" style="grid-template-columns: 1fr;">
               <div class="filter-item vertical">
                 <div class="filter-label">Laps to Discard at Start of Race</div>
-                <input type="number" id="fuelEffectFilterMinLap" value="1" min="0">
+                <input type="number" id="fuelEffectFilterMinLap" value="0" min="0">
               </div>
               <div class="filter-item vertical">
                 <div class="filter-label">Laps to Discard at End of Race</div>
-                <input type="number" id="fuelEffectFilterEndLaps" value="1" min="0">
+                <input type="number" id="fuelEffectFilterEndLaps" value="0" min="0">
               </div>
               <div class="filter-item vertical">
                 <div class="filter-label">Laps to Discard at Start of Stint</div>
-                <input type="number" id="fuelEffectFilterMinStintLap" value="2" min="0">
+                <input type="number" id="fuelEffectFilterMinStintLap" value="0" min="0">
               </div>
               <div class="filter-item vertical">
                 <div class="filter-label">Min Distance to Car Ahead</div>
-                <input type="number" id="fuelEffectFilterMinDist" value="200" min="0" step="0.1">
+                <input type="number" id="fuelEffectFilterMinDist" value="0" min="0" step="0.1">
               </div>
             </div>
           </div>
@@ -3350,10 +3350,10 @@
 
       // Shared filters (synced across lap time, tyre deg, and fuel effect tabs)
       filters: {
-        minLap: 1,
-        endLaps: 1,
-        minStintLap: 2,
-        minDist: 200,
+        minLap: 0,
+        endLaps: 0,
+        minStintLap: 0,
+        minDist: 0,
         rainfall: false,
         safetyCar: false,
         pitLaps: false,
@@ -3377,8 +3377,8 @@
 
       // Lap Time tab
       lapTime: {
-        fuelAdjust: true,
-        tyreLifeAdjust: true
+        fuelAdjust: false,
+        tyreLifeAdjust: false
       },
 
       // Tyre Deg tab
@@ -3444,10 +3444,10 @@
 
       // Shared filters (synced across lap time, tyre deg, and fuel effect tabs)
       filters: {
-        minLap: 1,
-        endLaps: 1,
-        minStintLap: 2,
-        minDist: 200,
+        minLap: 0,
+        endLaps: 0,
+        minStintLap: 0,
+        minDist: 0,
         rainfall: false,
         safetyCar: false,
         pitLaps: false,
@@ -3471,8 +3471,8 @@
 
       // Lap Time tab
       lapTime: {
-        fuelAdjust: true,
-        tyreLifeAdjust: true
+        fuelAdjust: false,
+        tyreLifeAdjust: false
       },
 
       // Tyre Deg tab
@@ -3531,8 +3531,6 @@
     let replayConfig = {
       enabled: false
     };
-    let replayLapTimeAdjustments = null; // Preserve lap time toggles while replay mode is active
-
     // Animation state for replay playback
     let isPlaying = false;
     let intervalId = null;
@@ -3602,26 +3600,6 @@
       replayTimelineTimes.race = null;
       replayTimelineTimes.quali = null;
       replayTimelineContext = getReplayContextForTab(appState.currentActiveTab);
-    }
-
-    function applyReplayLapTimeDefaults() {
-      if (!replayLapTimeAdjustments) {
-        replayLapTimeAdjustments = {
-          fuelAdjust: appState.lapTime.fuelAdjust,
-          tyreLifeAdjust: appState.lapTime.tyreLifeAdjust
-        };
-      }
-      appState.lapTime.fuelAdjust = false;
-      appState.lapTime.tyreLifeAdjust = false;
-      renderLapTimeToggleInputsFromState();
-    }
-
-    function restoreLapTimeAdjustmentsFromReplay() {
-      if (!replayLapTimeAdjustments) return;
-      appState.lapTime.fuelAdjust = replayLapTimeAdjustments.fuelAdjust;
-      appState.lapTime.tyreLifeAdjust = replayLapTimeAdjustments.tyreLifeAdjust;
-      replayLapTimeAdjustments = null;
-      renderLapTimeToggleInputsFromState();
     }
 
     // Build cumulative timing segments per driver/lap for gap comparisons
@@ -4764,8 +4742,6 @@
       appState.filters.includeRetired = true;
       appState.tyreDeg.filterMinRows = 0;
       appState.tyreDeg.filterMinCorr = -1.0;
-      applyReplayLapTimeDefaults();
-
       // Populate seasons dropdown first
       UIHelpers.populateSeasons(seasonSel, sessionsByKey, {});
 
@@ -4820,17 +4796,15 @@
       previousFilteredDataLength = 0;
 
       // Reset filters to default values
-      appState.filters.minLap = 1;
-      appState.filters.endLaps = 1;
-      appState.filters.minStintLap = 2;
-      appState.filters.minDist = 200;
+      appState.filters.minLap = 0;
+      appState.filters.endLaps = 0;
+      appState.filters.minStintLap = 0;
+      appState.filters.minDist = 0;
       appState.filters.rainfall = false;
       appState.filters.safetyCar = false;
       appState.filters.pitLaps = false;
       appState.filters.includeLapped = true;
       appState.filters.includeRetired = true;
-
-      restoreLapTimeAdjustmentsFromReplay();
 
       // Re-initialize current panel with unfiltered data and default filters
       if (currentSessionData && currentSessionData.length >= 0) {
@@ -4862,17 +4836,15 @@
         previousFilteredDataLength = 0;
 
         // Reset filters to default values
-        appState.filters.minLap = 1;
-        appState.filters.endLaps = 1;
-        appState.filters.minStintLap = 2;
-        appState.filters.minDist = 200;
+        appState.filters.minLap = 0;
+        appState.filters.endLaps = 0;
+        appState.filters.minStintLap = 0;
+        appState.filters.minDist = 0;
         appState.filters.rainfall = false;
         appState.filters.safetyCar = false;
         appState.filters.pitLaps = false;
         appState.filters.includeLapped = true;
         appState.filters.includeRetired = true;
-
-        restoreLapTimeAdjustmentsFromReplay();
 
         // Re-initialize current panel with unfiltered data and default filters
         if (currentSessionData && currentSessionData.length >= 0) {
@@ -4904,17 +4876,15 @@
         previousFilteredDataLength = 0;
 
         // Reset filters to default values
-        appState.filters.minLap = 1;
-        appState.filters.endLaps = 1;
-        appState.filters.minStintLap = 2;
-        appState.filters.minDist = 200;
+        appState.filters.minLap = 0;
+        appState.filters.endLaps = 0;
+        appState.filters.minStintLap = 0;
+        appState.filters.minDist = 0;
         appState.filters.rainfall = false;
         appState.filters.safetyCar = false;
         appState.filters.pitLaps = false;
         appState.filters.includeLapped = true;
         appState.filters.includeRetired = true;
-
-        restoreLapTimeAdjustmentsFromReplay();
 
         // Re-initialize current panel with unfiltered data and default filters
         if (currentSessionData && currentSessionData.length >= 0) {
