@@ -3,7 +3,18 @@ import my_f1_utils # set the cache
 from pathlib import Path
 import pandas as pd
 
-def ensure_trailing_newline(path: Path):
+def detect_newline_style(path: Path) -> str:
+    if not path.exists() or path.stat().st_size == 0:
+        return "\n"
+
+    with path.open("rb") as f:
+        sample = f.read(8192)
+
+    if b"\r\n" in sample:
+        return "\r\n"
+    return "\n"
+
+def ensure_trailing_newline(path: Path, newline: str):
     if not path.exists() or path.stat().st_size == 0:
         return
 
@@ -13,7 +24,18 @@ def ensure_trailing_newline(path: Path):
 
     if last_byte != b"\n":
         with path.open("ab") as f:
-            f.write(b"\n")
+            f.write(newline.encode("ascii"))
+
+def report_newline_counts(path: Path):
+    if not path.exists():
+        return {"lf": 0, "crlf": 0, "cr": 0}
+
+    data = path.read_bytes()
+    return {
+        "lf": data.count(b"\n"),
+        "crlf": data.count(b"\r\n"),
+        "cr": data.count(b"\r"),
+    }
 
 def write_or_append_csv(df: pd.DataFrame, fn: str):
     path = Path(fn)
@@ -21,10 +43,11 @@ def write_or_append_csv(df: pd.DataFrame, fn: str):
     if path.exists() and path.stat().st_size > 0:
         header_order = pd.read_csv(fn, nrows=0).columns.tolist()
         df = df.reindex(columns=header_order)
-        ensure_trailing_newline(path)
-        df.to_csv(fn, mode="a", index=False, header=False)
+        newline = detect_newline_style(path)
+        ensure_trailing_newline(path, newline)
+        df.to_csv(fn, mode="a", index=False, header=False, lineterminator=newline)
     else:
-        df.to_csv(fn, index=False)
+        df.to_csv(fn, index=False, lineterminator="\n")
 
 def save_driver_info(races):
     fn = "github/driver_info.csv"
@@ -205,10 +228,10 @@ my_f1_utils.setup_cache(offline=False)
 #         for session_type in session_types:
 #             races.append((year, round_no, session_type))
 
-races = [(2026,1,"Q")]
+races = [(2026,2,"SQ")]
 all_df_fn = "github/all_df_q.csv"
-do_driver_info = False
-do_all_df = True
+do_driver_info = True
+do_all_df = False
 
 if do_driver_info:
     save_driver_info(races)
