@@ -4193,7 +4193,7 @@
       if (season && gpValue && sessionType) {
         // Extract meeting name from GP value (format: "round||meetingName")
         const meetingName = gpValue.includes('||') ? gpValue.split('||')[1] : gpValue;
-        replaySessionText.textContent = `${season} ${meetingName} - ${sessionType}`;
+        replaySessionText.textContent = `${season} ${meetingName} - ${formatSessionLabel(sessionType)}`;
       } else {
         replaySessionText.textContent = 'No session selected';
       }
@@ -4283,20 +4283,7 @@
 
       if (!season || !round) return;
 
-      const sessions = new Set();
-      fullSessionsByKey.forEach(value => {
-        if (value.year === String(season) &&
-            String(value.round_no) === String(round) &&
-            (!meetingName || value.meeting_name === meetingName)) {
-          sessions.add(value.session_type);
-        }
-      });
-
-      const sortedSessions = Array.from(sessions)
-        .filter(isRaceOrSprintSession)
-        .sort((a, b) => {
-        return getSessionOrderValue(a) - getSessionOrderValue(b);
-      });
+      const sortedSessions = getSelectableEventSessionTypes(fullSessionsByKey, season, round, meetingName);
 
       sortedSessions.forEach(sessionType => {
         const opt = document.createElement('option');
@@ -4307,11 +4294,7 @@
 
       replaySessionSelect.disabled = sortedSessions.length === 0;
       if (sortedSessions.length > 0) {
-        // Use preferred session if provided and valid, otherwise use last session
-        let targetSession = sortedSessions[sortedSessions.length - 1];
-        if (preferredSession && sortedSessions.includes(preferredSession)) {
-          targetSession = preferredSession;
-        }
+        const targetSession = getDefaultEventSessionType(fullSessionsByKey, season, round, meetingName, preferredSession);
         replaySessionSelect.value = targetSession;
       }
     }
@@ -4470,7 +4453,7 @@
         case 'SQ':
         case 'SPRINT QUALIFYING':
         case 'SPRINT SHOOTOUT':
-          return 'Sprint Shootout';
+          return 'Sprint';
         case 'Q':
         case 'QUALIFYING':
           return 'Qualifying';
@@ -4488,6 +4471,191 @@
     function isRaceOrSprintSession(sessionType) {
       const normalized = String(sessionType || "").trim().toUpperCase();
       return normalized === 'R' || normalized === 'S';
+    }
+
+    function isQualifyingSession(sessionType) {
+      const normalized = String(sessionType || "").trim().toUpperCase();
+      return normalized === 'Q' || normalized === 'SQ';
+    }
+
+    function addSessionsToIndex(rows, targetMap) {
+      if (!Array.isArray(rows) || !targetMap) return;
+
+      rows.forEach(r => {
+        const year = String(r.year || "").trim();
+        const round = String(r.round_no || "").trim();
+        const meeting = String(r.meeting_name || "").trim();
+        const sessionType = String(r.session_type || "").trim();
+        const circuit = String(r.circuit_name || "").trim();
+        if (!year || !round || !meeting || !sessionType || !circuit) return;
+
+        const key = `${year}||${round}||${meeting}||${sessionType}`;
+        if (!targetMap.has(key)) {
+          targetMap.set(key, {
+            year,
+            round_no: round,
+            meeting_name: meeting,
+            session_type: sessionType,
+            circuit_name: circuit
+          });
+        }
+      });
+    }
+
+    function rebuildSessionCatalog(targetMap, raceRows = [], qualiSessionRows = []) {
+      targetMap.clear();
+      addSessionsToIndex(raceRows, targetMap);
+      addSessionsToIndex(qualiSessionRows, targetMap);
+    }
+
+    function getEventSessionTypes(sessionMap, season, round, meetingName) {
+      const sessions = new Set();
+      sessionMap.forEach(value => {
+        if (value.year === String(season) &&
+            String(value.round_no) === String(round) &&
+            (!meetingName || value.meeting_name === meetingName)) {
+          sessions.add(String(value.session_type || "").trim().toUpperCase());
+        }
+      });
+      return Array.from(sessions).sort((a, b) => getSessionOrderValue(a) - getSessionOrderValue(b));
+    }
+
+    function getSelectableEventSessionTypes(sessionMap, season, round, meetingName) {
+      const sessions = getEventSessionTypes(sessionMap, season, round, meetingName);
+      const raceSessions = sessions.filter(isRaceOrSprintSession);
+      if (raceSessions.length > 0) {
+        return raceSessions;
+      }
+      return sessions.filter(isQualifyingSession);
+    }
+
+    function getDefaultEventSessionType(sessionMap, season, round, meetingName, preferredSession = null) {
+      const selectableSessions = getSelectableEventSessionTypes(sessionMap, season, round, meetingName);
+      const normalizedPreferred = String(preferredSession || "").trim().toUpperCase();
+      if (normalizedPreferred && selectableSessions.includes(normalizedPreferred)) {
+        return normalizedPreferred;
+      }
+      if (selectableSessions.includes('R')) return 'R';
+      if (selectableSessions.includes('S')) return 'S';
+      if (selectableSessions.includes('Q')) return 'Q';
+      if (selectableSessions.includes('SQ')) return 'SQ';
+      return selectableSessions[0] || '';
+    }
+
+    function getRaceDataUnavailableMessage() {
+      return 'No race or sprint data available for this session. Switch to the Quali tab to view qualifying data.';
+    }
+
+    function isQualiOnlySelection() {
+      const selectedSession = String(appState.session.sessionType || "").trim().toUpperCase();
+      return isQualifyingSession(selectedSession) &&
+        Array.isArray(currentQualiDataUnfiltered) &&
+        currentQualiDataUnfiltered.length > 0 &&
+        (!Array.isArray(currentSessionDataUnfiltered) || currentSessionDataUnfiltered.length === 0);
+    }
+
+    function renderMessageHtml(message, padding = 16) {
+      return `<div style="color:white;padding:${padding}px;text-align:center;">${message}</div>`;
+    }
+
+    function renderRaceDataUnavailableState(panelName) {
+      const message = getRaceDataUnavailableMessage();
+
+      if (panelName === 'timing' || panelName === 'lap-time') {
+        const tableContainer = document.getElementById('timingTableContainer');
+        const trackStatusEl = document.getElementById('timingTrackStatus');
+        if (trackStatusEl) {
+          trackStatusEl.style.display = 'none';
+          trackStatusEl.classList.remove('status-yellow', 'status-red', 'status-sc', 'status-vsc');
+          trackStatusEl.textContent = '';
+        }
+        if (tableContainer) {
+          tableContainer.innerHTML = renderMessageHtml(message, 20);
+        }
+        if (lapTimeChartInstance) {
+          lapTimeChartInstance.clear();
+        }
+        if (lapTimeChart) {
+          lapTimeChart.innerHTML = renderMessageHtml(message, 12);
+        }
+        const summary = document.getElementById('lapTimeSummaryTableContainer');
+        if (summary) {
+          summary.innerHTML = renderMessageHtml(message, 12);
+        }
+        return;
+      }
+
+      if (panelName === 'strategy') {
+        strategyChart.innerHTML = renderMessageHtml(message, 20);
+        lapAxisTop.innerHTML = '';
+        lapAxisBottom.innerHTML = '';
+        strategyContainer.classList.remove('show');
+        return;
+      }
+
+      if (panelName === 'race-trace') {
+        if (raceTraceChart) {
+          raceTraceChart.clear();
+        }
+        const chartContainer = document.getElementById('raceTraceChart');
+        if (chartContainer) {
+          chartContainer.innerHTML = renderMessageHtml(message, 12);
+        }
+        const driverList = document.getElementById('raceTraceDriverList');
+        if (driverList) {
+          driverList.innerHTML = '';
+        }
+        return;
+      }
+
+      if (panelName === 'tyre-deg') {
+        tyreDegChartsWrapper.style.display = 'none';
+        const tyreDegScatterChartWrapper = document.getElementById('tyreDegScatterChartWrapper');
+        if (tyreDegScatterChartWrapper) tyreDegScatterChartWrapper.style.display = 'none';
+        tyreDegAvgDegDisplay.style.display = 'none';
+        tyreDegStintsTableContainer.innerHTML = `<p style="color: var(--muted-color); padding: 20px; text-align: center;">${message}</p>`;
+        return;
+      }
+
+      if (panelName === 'fuel-effect') {
+        fuelEffectFilteredGroups.clear();
+        fuelEffectPreviousFilteredKeys = [];
+        fuelEffectGroupsTableContainer.innerHTML = renderMessageHtml(message, 20);
+        fuelEffectChartContainer.style.display = 'none';
+        fuelEffectCoefficientsContainer.style.display = 'none';
+        if (fuelEffectCoefficientsGrid) fuelEffectCoefficientsGrid.innerHTML = '';
+        if (fuelEffectChart) {
+          fuelEffectChart.dispose();
+          fuelEffectChart = null;
+        }
+        return;
+      }
+
+      if (panelName === 'pit-loss') {
+        pitLossEvents = [];
+        renderPitLossStats();
+        pitLossTableContainer.innerHTML = `<p>${message}</p>`;
+        return;
+      }
+
+      if (panelName === 'track-temp') {
+        renderTrackTempChartFromSeries([]);
+        if (messageEl) {
+          messageEl.textContent = message;
+        }
+        return;
+      }
+
+      if (panelName === 'calculator') {
+        const errorBox = document.getElementById("calculatorErrorBox");
+        if (errorBox) {
+          errorBox.textContent = message;
+          errorBox.style.display = 'block';
+        }
+        renderCalculatorRaceProgressDriverOptions([]);
+        updateCalculatorCombinedChartAndStints([], [], NaN, null);
+        updateCalculatorLapTimeChart([], [], NaN, NaN, NaN);
+      }
     }
 
     function getSpoilerPreferenceValues() {
@@ -4619,12 +4787,12 @@
 
     function applySpoilerFilter() {
       allRows = filterRowsForSpoilerConfig(allRowsRaw, spoilerConfig);
-      indexSessions(allRows, sessionsByKey);
       if (Array.isArray(qualiRowsRaw) && qualiRowsRaw.length > 0) {
         qualiRows = filterRowsForSpoilerConfig(qualiRowsRaw, spoilerConfig);
       } else {
         qualiRows = [];
       }
+      rebuildSessionCatalog(sessionsByKey, allRows, qualiRows);
     }
 
     function initializeSessionsUI(options = {}) {
@@ -4755,8 +4923,11 @@
       appState.session.gp = gpValue;
 
       // Populate sessions for the selected GP
+      const [round, meeting] = gpValue.split('||');
+      const selectableSessions = new Set(getSelectableEventSessionTypes(sessionsByKey, season, round, meeting));
       UIHelpers.populateSessions(sessionSel, sessionsByKey, season, gpValue, {
-        sessionFilter: isRaceOrSprintSession
+        preferredSession: sessionType,
+        sessionFilter: currentSessionType => selectableSessions.has(String(currentSessionType || '').trim().toUpperCase())
       });
       sessionSel.value = sessionType;
       appState.session.sessionType = sessionType;
@@ -5562,6 +5733,10 @@
       const [round, meeting] = appState.session.gp.split('||');
       const sessionType = appState.session.sessionType;
       const hasRows = Array.isArray(sessionData) && sessionData.length > 0;
+      if (panelName !== 'quali' && isQualiOnlySelection()) {
+        renderRaceDataUnavailableState(panelName);
+        return;
+      }
       const initLapTimeSection = () => {
         // Ensure scheduled laps is set from unfiltered data if available
         ensureLapTimeScheduledLaps();
@@ -5770,7 +5945,7 @@
         return;
       }
 
-      indexSessions(allRowsRaw, fullSessionsByKey);
+      rebuildSessionCatalog(fullSessionsByKey, allRowsRaw, rawQualiDataReady ? qualiRowsRaw : []);
 
       if (rawDataReady) return;
 
@@ -5850,8 +6025,14 @@
           );
 
           rawQualiDataReady = true;
+          if (rawRaceDataReady) {
+            rebuildSessionCatalog(fullSessionsByKey, allRowsRaw, qualiRowsRaw);
+          }
           if (rawDataReady && spoilerDecisionResolved) {
             applySpoilerFilter();
+            if (sessionsInitialized) {
+              initializeSessionsUI({ preserveSelection: true });
+            }
             updateQualiSessionData();
           }
         },
@@ -5867,27 +6048,7 @@
     }
 
     function indexSessions(rows, targetMap = sessionsByKey) {
-      targetMap.clear();
-
-      rows.forEach(r => {
-        const year = String(r.year || "").trim();
-        const round = String(r.round_no || "").trim();
-        const meeting = String(r.meeting_name || "").trim();
-        const sessionType = String(r.session_type || "").trim();
-        const circuit = String(r.circuit_name || "").trim();
-        if (!year || !round || !meeting || !sessionType || !circuit) return;
-
-        const key = `${year}||${round}||${meeting}||${sessionType}`;
-        if (!targetMap.has(key)) {
-          targetMap.set(key, {
-            year,
-            round_no: round,
-            meeting_name: meeting,
-            session_type: sessionType,
-            circuit_name: circuit
-          });
-        }
-      });
+      rebuildSessionCatalog(targetMap, rows, []);
     }
 
     function onSeasonChange() {
@@ -5935,8 +6096,19 @@
       currentSessionData = null;
       currentSessionDataUnfiltered = null;
 
+      const [round, meeting] = selectedGP ? selectedGP.split('||') : ['', ''];
+      const selectableSessions = new Set(getSelectableEventSessionTypes(sessionsByKey, selectedSeason, round, meeting));
+      const preferredSession = getDefaultEventSessionType(
+        sessionsByKey,
+        selectedSeason,
+        round,
+        meeting,
+        appState.session.sessionType
+      );
+
       UIHelpers.populateSessions(sessionSel, sessionsByKey, selectedSeason, selectedGP, {
-        sessionFilter: isRaceOrSprintSession
+        preferredSession,
+        sessionFilter: sessionType => selectableSessions.has(String(sessionType || '').trim().toUpperCase())
         // onChange: onSessionChange
       });
 
@@ -5990,7 +6162,12 @@
 
       const availableTypes = new Set(eventQualiRows.map(r => String(r.session_type || "").trim().toUpperCase()));
       const selectedSession = String(sessionSel.value || "").trim().toUpperCase();
-      const preferredQuali = selectedSession === 'S' ? 'SQ' : 'Q';
+      let preferredQuali = 'Q';
+      if (selectedSession === 'S' || selectedSession === 'SQ') {
+        preferredQuali = 'SQ';
+      } else if (selectedSession === 'R' || selectedSession === 'Q') {
+        preferredQuali = 'Q';
+      }
       const resolvedType = availableTypes.has(preferredQuali)
         ? preferredQuali
         : (availableTypes.has('Q') ? 'Q' : (availableTypes.has('SQ') ? 'SQ' : preferredQuali));
@@ -6040,17 +6217,22 @@
       });
       updateQualiSessionData();
 
-      buildReplayTimeline(currentSessionDataUnfiltered);
       timingFeedData = [];
       timingFeedLoaded = false;
-      loadTimingFeedForSession(selectedSeason, round, selectedSession)
-        .then(() => {
-          // After feed is loaded, re-render timing if this session is still current
-          if (appState.currentActiveTab === 'timing' && currentSessionData) {
-            renderTimingTable(currentSessionData, selectedSeason, round, selectedSession, currentSessionDataUnfiltered, null);
-          }
-        })
-        .catch(err => console.warn('Timing feed load failed', err));
+      const hasRaceData = currentSessionDataUnfiltered.length > 0;
+      if (hasRaceData) {
+        buildReplayTimeline(currentSessionDataUnfiltered);
+        loadTimingFeedForSession(selectedSeason, round, selectedSession)
+          .then(() => {
+            // After feed is loaded, re-render timing if this session is still current
+            if (appState.currentActiveTab === 'timing' && currentSessionData) {
+              renderTimingTable(currentSessionData, selectedSeason, round, selectedSession, currentSessionDataUnfiltered, null);
+            }
+          })
+          .catch(err => console.warn('Timing feed load failed', err));
+      } else {
+        resetReplayTimelineState();
+      }
 
       // Apply replay time filter if active
       // But only if replay slider has been initialized (has min/max set)
@@ -6067,19 +6249,21 @@
       if (!window.permalinkSession || !window.permalinkSession.isRestoring) {
         appState.selectedDrivers.clear();
         appState.timingSeenDrivers.clear();
-        // Select top 5 drivers for the new session (unconditionally, regardless of active tab)
-        selectTopDriversFromSessionData(currentSessionDataUnfiltered);
+        if (hasRaceData) {
+          // Select top 5 drivers for the new session (unconditionally, regardless of active tab)
+          selectTopDriversFromSessionData(currentSessionDataUnfiltered);
+        }
       }
 
       // Apply circuit config once for the new session (before initializing any panels)
       // Only apply config values if appState still has default values (not overridden by URL params)
-      const circuitName = currentSessionData.length > 0 ? String(currentSessionData[0].circuit_name || "").trim() : "";
-      applyPaceModelDefaultsForCircuit(circuitName);
+      if (hasRaceData && currentSessionData.length > 0) {
+        const circuitName = String(currentSessionData[0].circuit_name || "").trim();
+        applyPaceModelDefaultsForCircuit(circuitName);
+      }
 
       // Initialize the currently active panel with new data
-      if (currentSessionData.length > 0) {
-        initializePanel(appState.currentActiveTab, currentSessionData);
-      }
+      initializePanel(appState.currentActiveTab, currentSessionData || []);
 
       // Restore tab if we're restoring from permalink and tab is different from current
       if (window.permalinkSession && window.permalinkSession.isRestoring) {
