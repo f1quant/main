@@ -4278,25 +4278,19 @@
 
     function populateReplaySessionOptions(season, round, meetingName, preferredSession = null) {
       if (!replaySessionSelect) return;
-      replaySessionSelect.innerHTML = '<option value="">Select a session</option>';
-      replaySessionSelect.disabled = true;
-
-      if (!season || !round) return;
-
-      const sortedSessions = getSelectableEventSessionTypes(fullSessionsByKey, season, round, meetingName);
-
-      sortedSessions.forEach(sessionType => {
-        const opt = document.createElement('option');
-        opt.value = sessionType;
-        opt.textContent = formatSessionLabel(sessionType);
-        replaySessionSelect.appendChild(opt);
-      });
-
-      replaySessionSelect.disabled = sortedSessions.length === 0;
-      if (sortedSessions.length > 0) {
-        const targetSession = getDefaultEventSessionType(fullSessionsByKey, season, round, meetingName, preferredSession);
-        replaySessionSelect.value = targetSession;
+      if (!season || !round) {
+        replaySessionSelect.innerHTML = '<option value="">Select a session</option>';
+        replaySessionSelect.disabled = true;
+        return;
       }
+
+      populateSelectableEventSessions(
+        replaySessionSelect,
+        fullSessionsByKey,
+        season,
+        `${round}||${meetingName}`,
+        preferredSession
+      );
     }
 
     // ============================================================================
@@ -4521,12 +4515,15 @@
     }
 
     function getSelectableEventSessionTypes(sessionMap, season, round, meetingName) {
-      const sessions = getEventSessionTypes(sessionMap, season, round, meetingName);
-      const raceSessions = sessions.filter(isRaceOrSprintSession);
-      if (raceSessions.length > 0) {
-        return raceSessions;
+      const sessions = new Set(getEventSessionTypes(sessionMap, season, round, meetingName));
+      const selectableSessions = [];
+      if (sessions.has('R') || sessions.has('Q')) {
+        selectableSessions.push('R');
       }
-      return sessions.filter(isQualifyingSession);
+      if (sessions.has('S') || sessions.has('SQ')) {
+        selectableSessions.push('S');
+      }
+      return selectableSessions;
     }
 
     function getDefaultEventSessionType(sessionMap, season, round, meetingName, preferredSession = null) {
@@ -4537,9 +4534,27 @@
       }
       if (selectableSessions.includes('R')) return 'R';
       if (selectableSessions.includes('S')) return 'S';
-      if (selectableSessions.includes('Q')) return 'Q';
-      if (selectableSessions.includes('SQ')) return 'SQ';
       return selectableSessions[0] || '';
+    }
+
+    function populateSelectableEventSessions(selectElement, sessionMap, season, gpValue, preferredSession = null) {
+      if (!selectElement) return [];
+
+      selectElement.innerHTML = '';
+      selectElement.disabled = true;
+
+      if (!season || !gpValue) return [];
+
+      const [round, meeting] = gpValue.split('||');
+      const selectableSessions = getSelectableEventSessionTypes(sessionMap, season, round, meeting);
+      const targetSession = getDefaultEventSessionType(sessionMap, season, round, meeting, preferredSession);
+
+      return UIHelpers.populateSelect(selectElement, selectableSessions, {
+        filterEmpty: true,
+        autoSelectValue: targetSession,
+        autoSelectFirst: true,
+        formatText: formatSessionLabel
+      });
     }
 
     function getRaceDataUnavailableMessage() {
@@ -4923,12 +4938,7 @@
       appState.session.gp = gpValue;
 
       // Populate sessions for the selected GP
-      const [round, meeting] = gpValue.split('||');
-      const selectableSessions = new Set(getSelectableEventSessionTypes(sessionsByKey, season, round, meeting));
-      UIHelpers.populateSessions(sessionSel, sessionsByKey, season, gpValue, {
-        preferredSession: sessionType,
-        sessionFilter: currentSessionType => selectableSessions.has(String(currentSessionType || '').trim().toUpperCase())
-      });
+      populateSelectableEventSessions(sessionSel, sessionsByKey, season, gpValue, sessionType);
       sessionSel.value = sessionType;
       appState.session.sessionType = sessionType;
 
@@ -6096,21 +6106,13 @@
       currentSessionData = null;
       currentSessionDataUnfiltered = null;
 
-      const [round, meeting] = selectedGP ? selectedGP.split('||') : ['', ''];
-      const selectableSessions = new Set(getSelectableEventSessionTypes(sessionsByKey, selectedSeason, round, meeting));
-      const preferredSession = getDefaultEventSessionType(
+      populateSelectableEventSessions(
+        sessionSel,
         sessionsByKey,
         selectedSeason,
-        round,
-        meeting,
+        selectedGP,
         appState.session.sessionType
       );
-
-      UIHelpers.populateSessions(sessionSel, sessionsByKey, selectedSeason, selectedGP, {
-        preferredSession,
-        sessionFilter: sessionType => selectableSessions.has(String(sessionType || '').trim().toUpperCase())
-        // onChange: onSessionChange
-      });
 
       // Restore session from appState if restoring from permalink
       if (window.permalinkSession && window.permalinkSession.isRestoring && appState.session.sessionType) {
