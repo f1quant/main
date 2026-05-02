@@ -7906,25 +7906,25 @@ year,round_no,session_type,driver,number,color,TeamName,FullName,HeadshotUrl
 2021,10,SQ,MSC,47,#b6babd,Haas F1 Team,Mick Schumacher,https://www.formula1.com/content/dam/fom-website/drivers/M/MICSCH02_Mick_Schumacher/micsch02.png.transform/1col/image.png
 2021,10,SQ,MAZ,9,#b6babd,Haas F1 Team,Nikita Mazepin,https://www.formula1.com/content/dam/fom-website/drivers/N/NIKMAZ01_Nikita_Mazepin/nikmaz01.png.transform/1col/image.png
 2021,10,SQ,PER,11,#0600ef,Red Bull Racing,Sergio Perez,https://www.formula1.com/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png.transform/1col/image.png
-2026,Miami,SQ,NOR,1,#ff8000,McLaren,Lando Norris,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png.transform/1col/image.png
-2026,Miami,SQ,ANT,12,#27f4d2,Mercedes,Kimi Antonelli,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/K/ANDANT01_Kimi_Antonelli/andant01.png.transform/1col/image.png
-2026,Miami,SQ,PIA,81,#ff8000,McLaren,Oscar Piastri,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png.transform/1col/image.png
-2026,Miami,SQ,LEC,16,#e80020,Ferrari,Charles Leclerc,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png.transform/1col/image.png
-2026,Miami,SQ,VER,3,#0600ef,Red Bull Racing,Max Verstappen,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png
-2026,Miami,SQ,RUS,63,#27f4d2,Mercedes,George Russell,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/1col/image.png
-2026,Miami,SQ,HAM,44,#e80020,Ferrari,Lewis Hamilton,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png.transform/1col/image.png
-2026,Miami,SQ,COL,43,#ff87bc,Alpine,Franco Colapinto,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/F/FRACOL01_Franco_Colapinto/fracol01.png.transform/1col/image.png
-2026,Miami,SQ,HAD,6,#0600ef,Red Bull Racing,Isack Hadjar,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/I/ISAHAD01_Isack_Hadjar/isahad01.png.transform/1col/image.png
-2026,Miami,SQ,GAS,10,#ff87bc,Alpine,Pierre Gasly,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png.transform/1col/image.png
-2026,Miami,SQ,BOR,5,#ff2d00,Audi,Gabriel Bortoleto,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GABBOR01_Gabriel_Bortoleto/gabbor01.png.transform/1col/image.png
-2026,Miami,SQ,HUL,27,#ff2d00,Audi,Nico Hulkenberg,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png.transform/1col/image.png
-2026,Miami,SQ,BEA,87,#b6babd,Haas F1 Team,Oliver Bearman,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OLIBEA01_Oliver_Bearman/olibea01.png.transform/1col/image.png
-2026,Miami,SQ,ALB,23,#00a0dd,Williams,Alexander Albon,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png.transform/1col/image.png
-2026,Miami,SQ,SAI,55,#00a0dd,Williams,Carlos Sainz,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png.transform/1col/image.png
-2026,Miami,SQ,LIN,41,#fcd700,Racing Bulls,Arvid Lindblad,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/A/ARVLIN01_Arvid_Lindblad/arvlin01.png.transform/1col/image.png
-2026,Miami,SQ,LAW,30,#fcd700,Racing Bulls,Liam Lawson,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LIALAW01_Liam_Lawson/lialaw01.png.transform/1col/image.png
-2026,Miami,SQ,OCO,31,#b6babd,Haas F1 Team,Esteban Ocon,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png.transform/1col/image.png
-2026,Miami,SQ,PER,11,#444444,Cadillac,Sergio Perez,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png.transform/1col/image.png
-2026,Miami,SQ,BOT,77,#444444,Cadillac,Valtteri Bottas,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png.transform/1col/image.png
-2026,Miami,SQ,ALO,14,#00665f,Aston Martin,Fernando Alonso,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png.transform/1col/image.png
-2026,Miami,SQ,STR,18,#00665f,Aston Martin,Lance Stroll,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png.transform/1col/image.png
+2026,4,SQ,NOR,1,#ff8000,McLaren,Lando Norris,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png.transform/1col/image.png
+2026,4,SQ,ANT,12,#27f4d2,Mercedes,Kimi Antonelli,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/K/ANDANT01_Kimi_Antonelli/andant01.png.transform/1col/image.png
+2026,4,SQ,PIA,81,#ff8000,McLaren,Oscar Piastri,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png.transform/1col/image.png
+2026,4,SQ,LEC,16,#e80020,Ferrari,Charles Leclerc,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png.transform/1col/image.png
+2026,4,SQ,VER,3,#0600ef,Red Bull Racing,Max Verstappen,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png
+2026,4,SQ,RUS,63,#27f4d2,Mercedes,George Russell,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/1col/image.png
+2026,4,SQ,HAM,44,#e80020,Ferrari,Lewis Hamilton,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png.transform/1col/image.png
+2026,4,SQ,COL,43,#ff87bc,Alpine,Franco Colapinto,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/F/FRACOL01_Franco_Colapinto/fracol01.png.transform/1col/image.png
+2026,4,SQ,HAD,6,#0600ef,Red Bull Racing,Isack Hadjar,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/I/ISAHAD01_Isack_Hadjar/isahad01.png.transform/1col/image.png
+2026,4,SQ,GAS,10,#ff87bc,Alpine,Pierre Gasly,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png.transform/1col/image.png
+2026,4,SQ,BOR,5,#ff2d00,Audi,Gabriel Bortoleto,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GABBOR01_Gabriel_Bortoleto/gabbor01.png.transform/1col/image.png
+2026,4,SQ,HUL,27,#ff2d00,Audi,Nico Hulkenberg,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png.transform/1col/image.png
+2026,4,SQ,BEA,87,#b6babd,Haas F1 Team,Oliver Bearman,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OLIBEA01_Oliver_Bearman/olibea01.png.transform/1col/image.png
+2026,4,SQ,ALB,23,#00a0dd,Williams,Alexander Albon,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png.transform/1col/image.png
+2026,4,SQ,SAI,55,#00a0dd,Williams,Carlos Sainz,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png.transform/1col/image.png
+2026,4,SQ,LIN,41,#fcd700,Racing Bulls,Arvid Lindblad,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/A/ARVLIN01_Arvid_Lindblad/arvlin01.png.transform/1col/image.png
+2026,4,SQ,LAW,30,#fcd700,Racing Bulls,Liam Lawson,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LIALAW01_Liam_Lawson/lialaw01.png.transform/1col/image.png
+2026,4,SQ,OCO,31,#b6babd,Haas F1 Team,Esteban Ocon,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png.transform/1col/image.png
+2026,4,SQ,PER,11,#444444,Cadillac,Sergio Perez,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png.transform/1col/image.png
+2026,4,SQ,BOT,77,#444444,Cadillac,Valtteri Bottas,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png.transform/1col/image.png
+2026,4,SQ,ALO,14,#00665f,Aston Martin,Fernando Alonso,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png.transform/1col/image.png
+2026,4,SQ,STR,18,#00665f,Aston Martin,Lance Stroll,https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png.transform/1col/image.png
