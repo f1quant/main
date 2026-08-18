@@ -202,23 +202,23 @@ my_f1_utils.setup_cache(offline=False)
 #         for session_type in session_types:
 #             races.append((year, round_no, session_type))
 
-# races = [(2026,1,"R")]
-# all_df_fn = "github/all_df.csv"
-# do_driver_info = True
-# do_all_df = True
-# do_timing_data = True
+races = [(2026, 11, "R")] # hungary
+all_df_fn = "github/all_df.csv"
+do_driver_info = True
+do_all_df = True
+do_timing_data = True
 
-# if do_driver_info:
-#     save_driver_info(races)
+if do_driver_info:
+    save_driver_info(races)
 
-# if do_all_df:
-#     save_to_all_df(races, all_df_fn)
+if do_all_df:
+    save_to_all_df(races, all_df_fn)
 
-# if do_timing_data:
-#     save_timing_data(races)
+if do_timing_data:
+    save_timing_data(races)
 
 # =============== SAVING QUALIS ===============
-# all races to reconstruct everything
+# all races to reconstruct edverything
 # races = []
 # years = list(range(2025,2017,-1))
 # rounds = list(range(26,0,-1))
@@ -228,13 +228,16 @@ my_f1_utils.setup_cache(offline=False)
 #         for session_type in session_types:
 #             races.append((year, round_no, session_type))
 
-races = [(2026,2,"SQ")]
-all_df_fn = "github/all_df_q.csv"
-do_driver_info = True
-do_all_df = False
+# races = [
+#     (2026, 10, "Q"),  # spa qualifying
+#     (2026, 11, "Q"),  # hungary qualifying
+# ]
+# all_df_fn = "github/all_df_q.csv"
+# do_driver_info = True
+# do_all_df = True
 
-if do_driver_info:
-    save_driver_info(races)
+# if do_driver_info:
+#     save_driver_info(races)
 
-if do_all_df:
-    save_to_all_df(races, all_df_fn, quali=True)
+# if do_all_df:
+#     save_to_all_df(races, all_df_fn, quali=True)

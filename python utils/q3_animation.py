@@ -267,12 +267,12 @@ def animate_q3_fastest_laps(year, grand_prix, drivers):
     for driver in drivers:    
         driver_laps.append(laps.pick_drivers(driver).pick_fastest())
         color = fastf1.plotting.get_driver_style(identifier=driver, style=['color'], session=session)["color"]
-        if driver == "PIA":
+        if driver == "ANT":
             color = "black"
         colors.append(color)
     make_plot(driver_laps, drivers, colors, title)
 
-animate_q3_fastest_laps(2025, 24, ["VER", "NOR"])
+animate_q3_fastest_laps(2026, 8, ["RUS", "ANT"])
 
 # year, grand_prix = 2025, 23
 # session = fastf1.get_session(year, grand_prix, "Q")
